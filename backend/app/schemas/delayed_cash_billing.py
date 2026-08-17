@@ -28,6 +28,13 @@ class DelayedCashCenterPenaltyOut(BaseModel):
     final_penalty: Optional[Decimal]
     penalty_status: str
     created_at: datetime
+    # Read-only passthrough of this center's own response-portal link, if
+    # one has ever been minted (via Publish links) -- lets the "View
+    # centers" table show/copy each center's link directly, without a
+    # separate endpoint or re-minting anything. Null until Publish links
+    # has been used at least once for this batch.
+    response_token: Optional[str] = None
+    response_token_expires_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

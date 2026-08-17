@@ -658,6 +658,15 @@ class CenterBreakdown:
     all_time_batch_count: int
     all_time_considered_count: int
     all_time_not_considered_count: int
+    # Read-only passthrough of this center's own response-portal link for
+    # THIS batch, if one has ever been minted (via Publish links) -- lets
+    # the "View centers" table show/copy each center's link directly.
+    # Lives on WeeklyRevenueCenterCase, a separate table from the
+    # incidents this breakdown is otherwise built from (see that model's
+    # docstring for why), so it's joined in below rather than being a
+    # plain column passthrough like DCB's equivalent.
+    response_token: Optional[str] = None
+    response_token_expires_at: Optional[datetime] = None
 
 
 def get_batch_centers_breakdown(db: Session, *, batch: WeeklyRevenueClosureBatch) -> list[CenterBreakdown]:
@@ -668,6 +677,11 @@ def get_batch_centers_breakdown(db: Session, *, batch: WeeklyRevenueClosureBatch
     by_center: dict[str, list[WeeklyRevenueBillIncident]] = {}
     for incident in this_batch_incidents:
         by_center.setdefault(incident.centre_code, []).append(incident)
+
+    cases_by_centre_code = {
+        case.centre_code: case
+        for case in db.query(WeeklyRevenueCenterCase).filter(WeeklyRevenueCenterCase.batch_id == batch.id).all()
+    }
 
     results = []
     for centre_code, incidents in by_center.items():
@@ -680,6 +694,7 @@ def get_batch_centers_breakdown(db: Session, *, batch: WeeklyRevenueClosureBatch
             db.query(WeeklyRevenueBillIncident).filter(WeeklyRevenueBillIncident.centre_code == centre_code).all()
         )
         all_time_batch_ids = {i.batch_id for i in all_time_incidents}
+        case = cases_by_centre_code.get(centre_code)
 
         results.append(
             CenterBreakdown(
@@ -699,6 +714,8 @@ def get_batch_centers_breakdown(db: Session, *, batch: WeeklyRevenueClosureBatch
                 all_time_not_considered_count=sum(
                     1 for i in all_time_incidents if i.considered == "not_considered"
                 ),
+                response_token=case.response_token if case is not None else None,
+                response_token_expires_at=case.response_token_expires_at if case is not None else None,
             )
         )
 

@@ -350,6 +350,8 @@ export interface DelayedCashCenterPenalty {
   final_penalty: string | null
   penalty_status: DcbPenaltyStatus
   created_at: string
+  response_token: string | null
+  response_token_expires_at: string | null
 }
 
 export interface DelayedCashUploadBatch {
@@ -613,6 +615,8 @@ export interface WrcCenterBreakdown {
   all_time_batch_count: number
   all_time_considered_count: number
   all_time_not_considered_count: number
+  response_token: string | null
+  response_token_expires_at: string | null
 }
 
 // ---------- Weekly Revenue Closure: response portal (mirrors DCB's) ----------

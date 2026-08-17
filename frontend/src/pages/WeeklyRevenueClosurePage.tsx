@@ -27,7 +27,6 @@ import {
   getCaseIncidents,
   getCaseResponses,
   getCentersActivity,
-  getPublishedLinksForBatch,
   getReviewQueue,
   listBatches,
   revokeBillIncidentReview,
@@ -140,7 +139,6 @@ export function WeeklyRevenueClosurePage() {
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null)
   const [centersBatchId, setCentersBatchId] = useState<number | null>(null)
   const [publishResult, setPublishResult] = useState<WrcBatchPublishResult | null>(null)
-  const [viewLinksResult, setViewLinksResult] = useState<WrcBatchPublishResult | null>(null)
   const [batchToDelete, setBatchToDelete] = useState<WeeklyRevenueClosureBatch | null>(null)
   const queryClient = useQueryClient()
   const { showToast } = useToast()
@@ -158,15 +156,6 @@ export function WeeklyRevenueClosurePage() {
     mutationFn: (batchId: number) => publishLinksForBatch(batchId),
     onSuccess: (result) => setPublishResult(result),
     onError: (err) => showToast(apiErrorMessage(err, 'Could not publish links'), 'error'),
-  })
-
-  // Read-only -- unlike publishMutation above, never mints/invalidates
-  // tokens; just fetches whatever links already exist for this batch so
-  // they can be viewed/copied straight from the Batches table.
-  const viewLinksMutation = useMutation({
-    mutationFn: (batchId: number) => getPublishedLinksForBatch(batchId),
-    onSuccess: (result) => setViewLinksResult(result),
-    onError: (err) => showToast(apiErrorMessage(err, 'Could not load links'), 'error'),
   })
 
   const deleteMutation = useMutation({
@@ -250,18 +239,7 @@ export function WeeklyRevenueClosurePage() {
                             {formatDate(batch.period_start)} – {formatDate(batch.period_end)}
                           </td>
                           <td className="py-2 pr-4">
-                            <div className="flex items-center gap-2">
-                              <Badge tone="status">{batch.status}</Badge>
-                              <Tooltip text="Shows every response link already generated for this batch so you can copy one straight from here -- read-only, doesn't mint or invalidate any link. Shows empty until you Publish links at least once.">
-                                <button
-                                  className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300 disabled:opacity-50"
-                                  disabled={viewLinksMutation.isPending}
-                                  onClick={() => viewLinksMutation.mutate(batch.id)}
-                                >
-                                  View links
-                                </button>
-                              </Tooltip>
-                            </div>
+                            <Badge tone="status">{batch.status}</Badge>
                           </td>
                           <td className="py-2 pr-4">{formatDate(batch.created_at)}</td>
                           <td className="py-2 pr-4">
@@ -344,9 +322,6 @@ export function WeeklyRevenueClosurePage() {
       {tab === 'notifications' && <WrcContactChangeNotificationsTab />}
 
       {publishResult && <PublishResultModal result={publishResult} onClose={() => setPublishResult(null)} />}
-      {viewLinksResult && (
-        <PublishResultModal result={viewLinksResult} onClose={() => setViewLinksResult(null)} mode="view" />
-      )}
 
       {batchToDelete && (
         <Modal title="Delete this batch?" onClose={() => setBatchToDelete(null)}>
@@ -781,6 +756,7 @@ function WrcCentersBreakdown({
   onClose: () => void
   onSwitchBatch: (batchId: number) => void
 }) {
+  const { showToast } = useToast()
   const { data: batches } = useQuery({ queryKey: ['wrc-batches'], queryFn: listBatches })
   const { data, isLoading, error } = useQuery({
     queryKey: ['wrc-centers-breakdown', batchId],
@@ -846,6 +822,7 @@ function WrcCentersBreakdown({
                       <th className="py-2 pr-4">Cluster</th>
                       <th className="py-2 pr-4">Zonal Manager</th>
                       <th className="py-2 pr-4">This Week</th>
+                      <th className="py-2 pr-4">Link</th>
                       <th className="py-2 pr-4">All-Time Weeks Flagged</th>
                       <th className="py-2 pr-4">All-Time Considered</th>
                       <th className="py-2 pr-4">All-Time Not Considered</th>
@@ -870,6 +847,24 @@ function WrcCentersBreakdown({
                           )}{' '}
                           {r.this_batch_pending_count > 0 && (
                             <span className="text-xs text-slate-500 dark:text-slate-400">{r.this_batch_pending_count} pending</span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {r.response_token ? (
+                            <Tooltip text="Copies this center's own response-portal link -- read-only, doesn't mint or invalidate anything.">
+                              <button
+                                type="button"
+                                className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300"
+                                onClick={() => {
+                                  const url = `${window.location.origin}/respond/weekly-revenue/${r.response_token}`
+                                  navigator.clipboard.writeText(url).then(() => showToast('Link copied'))
+                                }}
+                              >
+                                Copy link
+                              </button>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
                           )}
                         </td>
                         <td className="py-2 pr-4">

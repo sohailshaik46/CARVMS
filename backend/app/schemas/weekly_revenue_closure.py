@@ -146,6 +146,11 @@ class CenterBreakdownOut(BaseModel):
     all_time_batch_count: int
     all_time_considered_count: int
     all_time_not_considered_count: int
+    # Read-only passthrough of this center's own response-portal link for
+    # this batch, if one has ever been minted -- see the identical
+    # comment on the CenterBreakdown dataclass this is built from.
+    response_token: Optional[str] = None
+    response_token_expires_at: Optional[datetime] = None
 
 
 # ---------- response portal (mirrors app/schemas/delayed_cash_billing.py) ----------
