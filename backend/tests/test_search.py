@@ -124,16 +124,8 @@ def test_search_finds_wrc_incident_by_centre_name(client):
     assert any(r["id"] == incident_id for r in matches)
 
 
-def test_search_finds_dataset_and_org_node(client):
-    import io
-
+def test_search_finds_org_node(client):
     token = _admin(client, "s_admin3", "s_admin3@example.com")
-    client.post(
-        "/datasets",
-        data={"name": "Distinctive Dataset Marker"},
-        files={"file": ("m.csv", io.BytesIO(b"a,b\n1,2"), "text/csv")},
-        headers=_auth(token),
-    )
 
     dims = client.get("/org/dimensions", headers=_auth(token)).json()
     zone_id = next(d["id"] for d in dims if d["key"] == "zone")
@@ -143,9 +135,6 @@ def test_search_finds_dataset_and_org_node(client):
         headers=_auth(token),
     )
 
-    dataset_hits = client.get("/search?q=Distinctive Dataset", headers=_auth(token)).json()
-    assert len(dataset_hits["results"].get("dataset", [])) == 1
-
     node_hits = client.get("/search?q=Distinctive Zone", headers=_auth(token)).json()
     assert len(node_hits["results"].get("org_node", [])) == 1
 
@@ -154,8 +143,8 @@ def test_search_respects_types_filter(client):
     token = _admin(client, "s_admin4", "s_admin4@example.com")
     _dcb_bill("4", "Filter Test DCB Center")
 
-    only_datasets = client.get("/search?q=Filter Test&types=dataset", headers=_auth(token)).json()
-    assert "delayed_cash_bill" not in only_datasets["results"]
+    only_org_nodes = client.get("/search?q=Filter Test&types=org_node", headers=_auth(token)).json()
+    assert "delayed_cash_bill" not in only_org_nodes["results"]
 
 
 def test_search_requires_vigilance_role(client):

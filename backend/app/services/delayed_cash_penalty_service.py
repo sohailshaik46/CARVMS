@@ -319,6 +319,12 @@ class InvalidReviewDecisionError(Exception):
     DCB_BILL_REVIEW_DECISIONS -- never silently coerced or ignored."""
 
 
+class BillNotReviewedError(Exception):
+    """Raised by revoke_bill_review_decision when the bill has no decision
+    to revoke -- there's nothing to undo, so this is never silently a
+    no-op that could mask the caller clicking the wrong row."""
+
+
 def set_bill_review_decision(
     db: Session, *, bill: DelayedCashBill, decision: str, reviewed_by: User
 ) -> DelayedCashBill:
@@ -334,6 +340,30 @@ def set_bill_review_decision(
     bill.considered = decision
     bill.reviewed_by_id = reviewed_by.id
     bill.reviewed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(bill)
+    return bill
+
+
+def revoke_bill_review_decision(db: Session, *, bill: DelayedCashBill) -> DelayedCashBill:
+    """Undoes a mistaken review click -- clears considered/reviewed_by/
+    reviewed_at back to their pre-review state, moving the bill from
+    Action Taken back into the Review Queue so Vigilance can decide again.
+    Does NOT touch calculated_penalty/validated_penalty (recompute_
+    validated_penalty already has to be re-run to fold in whatever the
+    new decision ends up being, same as after any other review).
+
+    Only revokes a decision that was actually made by a human review click
+    (reviewed_by_id set) -- a bill whose `considered` came from
+    _infer_considered() reading the historical workbook's own Penalty
+    Remarks column at ingest time has no reviewed_by_id, and revoking that
+    would erase real historical data with nothing to show for it. There's
+    nothing to "undo" there since nobody in this app made that decision."""
+    if bill.considered is None or bill.reviewed_by_id is None:
+        raise BillNotReviewedError("This bill has no review decision to revoke.")
+    bill.considered = None
+    bill.reviewed_by_id = None
+    bill.reviewed_at = None
     db.commit()
     db.refresh(bill)
     return bill

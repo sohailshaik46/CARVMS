@@ -10,7 +10,6 @@ const TYPE_LABELS: Record<SearchableType, string> = {
   delayed_cash_bill: 'Delayed Cash Billing',
   wrc_incident: 'Weekly Revenue Closure',
   org_node: 'Org Hierarchy Nodes',
-  dataset: 'Datasets',
   report_template: 'Report Templates',
 }
 
@@ -20,8 +19,6 @@ function linkFor(item: SearchResultItem): string | null {
       return '/delayed-cash'
     case 'wrc_incident':
       return '/weekly-revenue-closure'
-    case 'dataset':
-      return `/datasets/${item.id}`
     case 'report_template':
       return '/reports'
     default:

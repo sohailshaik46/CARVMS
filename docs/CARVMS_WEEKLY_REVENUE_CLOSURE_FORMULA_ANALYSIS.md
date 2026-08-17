@@ -181,6 +181,27 @@ incident, correctly excluded from that section's Cluster-Manager rollup in Week 
 **User-confirmed:** Zonal Manager never escalates in this section, only in "Remarks Not
 Received." Matches both weeks' data with zero exceptions.
 
+### 6.3.1 Deliberate policy change (2026-08-17): "Remarks Not Received" Cluster/Zonal scope
+
+The rule above (§6.3, and the "no_remark section counts every incident type" line in §3's table)
+remains the **proven, real-data-matched** behavior — Week 2 matches its own stated Cluster/Zonal
+rollups 23/23 with zero mismatches under it, which is still true and unchanged.
+
+Separately, the user explicitly requested a **forward-only policy change**, confirmed twice after
+being shown this exact zero-mismatch evidence and asked directly whether they wanted to diverge
+from it: going forward, Cluster and Zonal Manager escalation in the "Remarks Not Received" section
+should count **only `bill_pending`-type** incidents, not `daily_report_not_sent` or
+`no_billing_no_daily_report` — matching the rule already proven for the *other* section (§6.2).
+Center-level penalties and the "Remarks received but not considered" section are unaffected.
+
+This is versioned, not a rewrite of the formula above: `WeeklyRevenueClosureRule.no_remark_role_penalty_scope`
+(`"all_types"` default, matches §6.3 exactly; `"bill_pending_only"` for the new policy) is read by
+`compute_role_penalties` per-batch, keyed to whichever rule was active when a batch is closed. A
+rule version named `WRC-NOREMARK-BILLPENDING-<date>` with the new scope was created and approved
+live on 2026-08-17, so it applies to batches closed from that point on; the original Week 2/Week 3
+reconciliation tests keep passing unchanged because they create their own rule with the default
+scope, exactly as before.
+
 ### 6.4 The raw daily ingestion source — RESOLVED
 
 The user subsequently supplied two more real files: `July-26-Week2-closure pending List till

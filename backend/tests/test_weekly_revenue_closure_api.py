@@ -177,6 +177,94 @@ def test_review_queue_and_review_decision_flow(client):
     assert queue_after.json() == []
 
 
+def test_revoke_review_moves_incident_back_to_review_queue(client):
+    _ensure_approved_rule("WRC-API-REVOKE")
+    admin_token = _admin(client, "wrc_admin_revoke", "wrc_admin_revoke@example.com")
+
+    rows = [["South", "Revoke Cluster", "WRC-REVOKE-1", "Revoke Test Center", date(2026, 7, 5), 5, 4, -1, "1 Bill pending", "Bill Pending"]]
+    upload_resp = _upload(client, admin_token, rows, week_label="Week Revoke")
+    batch_id = upload_resp.json()["batch"]["id"]
+    incident_id = client.get(
+        "/weekly-revenue-closure/bills/review-queue", params={"batch_id": batch_id}, headers=_auth(admin_token)
+    ).json()[0]["id"]
+
+    client.post(
+        f"/weekly-revenue-closure/bills/{incident_id}/review",
+        json={"decision": "not_considered"},
+        headers=_auth(admin_token),
+    )
+    assert incident_id in {
+        b["id"] for b in client.get("/weekly-revenue-closure/bills/action-taken", headers=_auth(admin_token)).json()
+    }
+
+    revoked = client.post(f"/weekly-revenue-closure/bills/{incident_id}/revoke-review", headers=_auth(admin_token))
+    assert revoked.status_code == 200
+    assert revoked.json()["considered"] is None
+
+    action_taken_ids = {
+        b["id"] for b in client.get("/weekly-revenue-closure/bills/action-taken", headers=_auth(admin_token)).json()
+    }
+    assert incident_id not in action_taken_ids
+    queue_ids = {
+        b["id"]
+        for b in client.get(
+            "/weekly-revenue-closure/bills/review-queue", params={"batch_id": batch_id}, headers=_auth(admin_token)
+        ).json()
+    }
+    assert incident_id in queue_ids
+
+
+def test_revoke_review_allows_a_fresh_decision_afterwards(client):
+    _ensure_approved_rule("WRC-API-REVOKE-FRESH")
+    admin_token = _admin(client, "wrc_admin_revoke_fresh", "wrc_admin_revoke_fresh@example.com")
+
+    rows = [["South", "Revoke Cluster", "WRC-REVOKE-2", "Revoke Test Center 2", date(2026, 7, 5), 5, 4, -1, "1 Bill pending", "Bill Pending"]]
+    upload_resp = _upload(client, admin_token, rows, week_label="Week Revoke Fresh")
+    incident_id = client.get(
+        "/weekly-revenue-closure/bills/review-queue",
+        params={"batch_id": upload_resp.json()["batch"]["id"]},
+        headers=_auth(admin_token),
+    ).json()[0]["id"]
+
+    client.post(f"/weekly-revenue-closure/bills/{incident_id}/review", json={"decision": "not_considered"}, headers=_auth(admin_token))
+    client.post(f"/weekly-revenue-closure/bills/{incident_id}/revoke-review", headers=_auth(admin_token))
+    fresh = client.post(f"/weekly-revenue-closure/bills/{incident_id}/review", json={"decision": "considered"}, headers=_auth(admin_token))
+    assert fresh.status_code == 200
+    assert fresh.json()["considered"] == "considered"
+
+
+def test_revoke_review_400s_when_incident_was_never_reviewed(client):
+    _ensure_approved_rule("WRC-API-REVOKE-NEVER")
+    admin_token = _admin(client, "wrc_admin_revoke_never", "wrc_admin_revoke_never@example.com")
+
+    rows = [["South", "Revoke Cluster", "WRC-REVOKE-3", "Revoke Test Center 3", date(2026, 7, 5), 5, 4, -1, "1 Bill pending", "Bill Pending"]]
+    upload_resp = _upload(client, admin_token, rows, week_label="Week Revoke Never")
+    incident_id = client.get(
+        "/weekly-revenue-closure/bills/review-queue",
+        params={"batch_id": upload_resp.json()["batch"]["id"]},
+        headers=_auth(admin_token),
+    ).json()[0]["id"]
+
+    resp = client.post(f"/weekly-revenue-closure/bills/{incident_id}/revoke-review", headers=_auth(admin_token))
+    assert resp.status_code == 400
+
+
+def test_revoke_review_requires_vigilance_role(client):
+    _ensure_approved_rule("WRC-API-REVOKE-RBAC")
+    admin_token = _admin(client, "wrc_admin_revoke_rbac", "wrc_admin_revoke_rbac@example.com")
+
+    rows = [["South", "Revoke Cluster", "WRC-REVOKE-4", "Revoke Test Center 4", date(2026, 7, 5), 5, 4, -1, "1 Bill pending", "Bill Pending"]]
+    upload_resp = _upload(client, admin_token, rows, week_label="Week Revoke RBAC")
+    incident_id = client.get(
+        "/weekly-revenue-closure/bills/review-queue",
+        params={"batch_id": upload_resp.json()["batch"]["id"]},
+        headers=_auth(admin_token),
+    ).json()[0]["id"]
+    client.post(f"/weekly-revenue-closure/bills/{incident_id}/review", json={"decision": "considered"}, headers=_auth(admin_token))
+
+    assert client.post(f"/weekly-revenue-closure/bills/{incident_id}/revoke-review").status_code == 401
+
+
 def test_review_invalid_decision_rejected(client):
     _ensure_approved_rule("WRC-API-INVALID")
     admin_token = _admin(client, "wrc_admin_invalid", "wrc_admin_invalid@example.com")

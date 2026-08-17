@@ -200,6 +200,33 @@ async def upload_batch_endpoint(
     )
 
 
+@router.get("/batches/{batch_id}/links", response_model=BatchPublishResultOut)
+def get_batch_links_endpoint(
+    batch_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_role(*VIGILANCE_ROLES)),
+):
+    """Read-only: whichever centers already have a response link, without
+    minting or invalidating anything (unlike the /publish endpoint below).
+    Empty `links` for a batch that's never been published at all."""
+    batch = _get_batch_or_404(db, batch_id)
+    center_penalties = upload_service.get_published_links(db, batch=batch)
+    return BatchPublishResultOut(
+        batch_id=batch.id,
+        links=[
+            ResponseLinkDetailOut(
+                center_penalty_id=cp.id,
+                centre_code=cp.centre_code,
+                centre_name=cp.centre_name,
+                response_token=cp.response_token,
+                response_url=f"{settings.FRONTEND_URL}/respond/delayed-cash/{cp.response_token}",
+                expires_at=cp.response_token_expires_at,
+            )
+            for cp in center_penalties
+        ],
+    )
+
+
 @router.post("/batches/{batch_id}/publish", response_model=BatchPublishResultOut)
 def publish_batch_endpoint(
     batch_id: int,
@@ -421,6 +448,24 @@ def review_bill(
             )
 
     return BillReviewOut(bill=BillOut.model_validate(bill), response_link=response_link)
+
+
+@router.post("/bills/{bill_id}/revoke-review", response_model=BillOut)
+def revoke_bill_review(
+    bill_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_role(*VIGILANCE_ROLES)),
+):
+    """Undoes a mistaken Considered/Not Considered/Needs More Detail/Needs
+    Proof click -- clears the verdict so the bill drops back out of Action
+    Taken and back into the Review Queue for a fresh decision. 400s if the
+    bill was never reviewed (nothing to undo)."""
+    bill = _get_bill_or_404(db, bill_id)
+    try:
+        bill = calc_service.revoke_bill_review_decision(db, bill=bill)
+    except calc_service.BillNotReviewedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return BillOut.model_validate(bill)
 
 
 @router.post("/bills/{bill_id}/notify", response_model=BillNotifyOut)

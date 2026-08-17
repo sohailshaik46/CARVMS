@@ -25,6 +25,13 @@ class WrongPasswordError(Exception):
     wrong) to avoid leaking anything about the stored hash."""
 
 
+class DuplicateUserError(Exception):
+    """Username or email already taken -- raised (not a silent None
+    return) for the admin-create path, unlike public self-registration's
+    create_user(), so the admin UI can show a specific error instead of a
+    generic failure."""
+
+
 def _user_snapshot(user: User) -> dict:
     return {"role": user.role, "is_active": user.is_active, "org_node_id": user.org_node_id}
 
@@ -49,6 +56,75 @@ def create_user(db: Session, user: UserRegister) -> User | None:
     db.commit()
     db.refresh(new_user)
 
+    return new_user
+
+
+def ensure_bootstrap_admin(db: Session, *, username: str, email: str, password: str) -> Optional[User]:
+    """One-time-safe: creates the first Admin account IF no Admin exists yet
+    in this database. Exists for a brand-new deployment with an empty DB --
+    there is no other way to get an initial Admin in without direct DB
+    access. Once at least one Admin exists this is a permanent no-op, so
+    the BOOTSTRAP_ADMIN_* env vars are safe to leave set indefinitely
+    rather than needing to be removed after first use. Never overwrites or
+    promotes an existing account -- if the username/email is already taken
+    by a non-Admin user, this does nothing (logged, not silent)."""
+    if db.query(User).filter(User.role == "Admin").first() is not None:
+        return None
+    existing = db.query(User).filter((User.email == email) | (User.username == username)).first()
+    if existing is not None:
+        return None
+
+    admin = User(
+        username=username,
+        email=email,
+        password_hash=hash_password(password),
+        role="Admin",
+        is_active=True,
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+    return admin
+
+
+def create_user_as_admin(
+    db: Session,
+    *,
+    username: str,
+    email: str,
+    password: str,
+    phone_number: Optional[str],
+    role: str,
+    actor: User,
+) -> User:
+    """Admin-driven creation -- unlike create_user() (public self-register,
+    always lands as DEFAULT_SELF_REGISTER_ROLE), this can set any real role
+    immediately, since only an Admin can call it."""
+    existing_user = db.query(User).filter((User.email == email) | (User.username == username)).first()
+    if existing_user:
+        raise DuplicateUserError("Username or email already exists")
+
+    new_user = User(
+        username=username,
+        email=email,
+        password_hash=hash_password(password),
+        phone_number=phone_number,
+        role=role,
+    )
+    db.add(new_user)
+    db.flush()
+
+    audit_log_service.record(
+        db,
+        actor=actor,
+        action="user.created_by_admin",
+        entity_type="User",
+        entity_id=new_user.id,
+        before=None,
+        after={"role": role},
+    )
+    db.commit()
+    db.refresh(new_user)
     return new_user
 
 

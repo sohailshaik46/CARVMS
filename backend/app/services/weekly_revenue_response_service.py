@@ -83,6 +83,26 @@ def generate_response_link_token(
     return case
 
 
+def get_published_links_for_batch(
+    db: Session, *, batch: WeeklyRevenueClosureBatch
+) -> list[WeeklyRevenueCenterCase]:
+    """Read-only counterpart to mint_links_for_batch above -- returns
+    whichever cases in this batch already have a response token, WITHOUT
+    minting or invalidating anything. Backs the Batches table's quick
+    "View links" action, so copying a link doesn't require re-publishing
+    (and so doesn't invalidate every other center's already-shared link)
+    just to look. Mirrors DCB's get_published_links in
+    delayed_cash_upload_service.py."""
+    return (
+        db.query(WeeklyRevenueCenterCase)
+        .filter(
+            WeeklyRevenueCenterCase.batch_id == batch.id,
+            WeeklyRevenueCenterCase.response_token.isnot(None),
+        )
+        .all()
+    )
+
+
 def get_case_by_token(db: Session, token: str) -> Optional[WeeklyRevenueCenterCase]:
     return db.query(WeeklyRevenueCenterCase).filter(WeeklyRevenueCenterCase.response_token == token).first()
 

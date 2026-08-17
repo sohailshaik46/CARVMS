@@ -65,6 +65,17 @@ class Settings(BaseSettings):
     # upload endpoint always works regardless.
     CENTERS_MASTER_SHEET_CSV_URL: Optional[str] = None
 
+    # One-time bootstrap Admin account -- ALL optional, and only ever acts
+    # if the database has zero Admin users yet (see
+    # user_service.ensure_bootstrap_admin). Exists because a brand-new
+    # deployment's database starts completely empty and self-registration
+    # never grants Admin -- without this there'd be no way to create the
+    # first Admin account short of direct DB access. Safe to leave set
+    # permanently; it's a no-op the moment any Admin exists.
+    BOOTSTRAP_ADMIN_USERNAME: Optional[str] = None
+    BOOTSTRAP_ADMIN_EMAIL: Optional[str] = None
+    BOOTSTRAP_ADMIN_PASSWORD: Optional[str] = None
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]

@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
@@ -6,11 +8,8 @@ from app.config import settings
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
 from app.api.org import router as org_router
-from app.api.datasets import router as datasets_router
 from app.api.dashboard import router as dashboard_router
 from app.api.reports import router as reports_router
-from app.api.reconciliations import router as reconciliations_router
-from app.api.anomalies import router as anomalies_router
 from app.api.report_templates import router as report_templates_router
 from app.api.search import router as search_router
 from app.api.dashboard_layouts import router as dashboard_layouts_router
@@ -30,10 +29,41 @@ from app.api.escalations import router as escalations_router
 # kind of change (is_active type, added timestamps) this project now needs.
 # Run `alembic upgrade head` before starting the app.
 
+
+def _bootstrap_admin_if_configured() -> None:
+    """See Settings.BOOTSTRAP_ADMIN_* and user_service.ensure_bootstrap_admin
+    -- only ever creates an account on a brand-new deploy with zero Admin
+    users; otherwise a fast no-op on every restart."""
+    if not (settings.BOOTSTRAP_ADMIN_USERNAME and settings.BOOTSTRAP_ADMIN_EMAIL and settings.BOOTSTRAP_ADMIN_PASSWORD):
+        return
+    from app.database.database import SessionLocal
+    from app.services import user_service
+
+    db = SessionLocal()
+    try:
+        created = user_service.ensure_bootstrap_admin(
+            db,
+            username=settings.BOOTSTRAP_ADMIN_USERNAME,
+            email=settings.BOOTSTRAP_ADMIN_EMAIL,
+            password=settings.BOOTSTRAP_ADMIN_PASSWORD,
+        )
+        if created is not None:
+            print(f"Bootstrap Admin account created: {created.username}")
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    _bootstrap_admin_if_configured()
+    yield
+
+
 app = FastAPI(
     title="Billing Data Validation API",
     version="1.0.0",
     description="Billing Data Validation -- Delayed Cash Billing + Weekly Revenue Closure vigilance and penalty automation.",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -47,11 +77,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(org_router)
-app.include_router(datasets_router)
 app.include_router(dashboard_router)
 app.include_router(reports_router)
-app.include_router(reconciliations_router)
-app.include_router(anomalies_router)
 app.include_router(report_templates_router)
 app.include_router(search_router)
 app.include_router(dashboard_layouts_router)

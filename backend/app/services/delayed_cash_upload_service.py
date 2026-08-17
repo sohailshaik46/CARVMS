@@ -248,3 +248,12 @@ def publish_batch(db: Session, *, batch: DelayedCashUploadBatch) -> list[Delayed
     db.commit()
     db.refresh(batch)
     return list(batch.center_penalties)
+
+
+def get_published_links(db: Session, *, batch: DelayedCashUploadBatch) -> list[DelayedCashCenterPenalty]:
+    """Read-only -- returns whichever centers already have a response
+    token, WITHOUT minting or invalidating anything (unlike publish_batch
+    above). Backs the Batches table's quick "View links" action, so
+    copying a link doesn't require re-publishing (and so doesn't
+    invalidate every other center's already-shared link) just to look."""
+    return [cp for cp in batch.center_penalties if cp.response_token]

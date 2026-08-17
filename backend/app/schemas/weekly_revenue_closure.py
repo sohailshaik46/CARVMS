@@ -138,6 +138,7 @@ class CenterBreakdownOut(BaseModel):
     centre_name: str
     zone: Optional[str]
     cluster: Optional[str]
+    zonal_manager: Optional[str]
     this_batch_incident_count: int
     this_batch_considered_count: int
     this_batch_not_considered_count: int

@@ -77,6 +77,20 @@ class WeeklyRevenueClosureRule(Base):
     # Delayed Cash Billing's monthly cap.
     penalty_rate = Column(Numeric(6, 4), nullable=False, default=0.0625)
 
+    # "all_types" (the original proven default, matches the real Week 2/3
+    # workbooks exactly -- see formula analysis doc S6.3): Cluster/Zonal
+    # Manager escalation in the "Remarks Not Received" section counts a
+    # center regardless of which of the 3 incident types it's flagged
+    # under. "bill_pending_only": a later, deliberate policy change (user-
+    # confirmed to diverge from the proven historical workbooks on
+    # purpose) narrowing that section's Cluster/Zonal escalation to
+    # bill_pending-type incidents only -- the Center-level penalty and the
+    # separate "responded but not considered" section are untouched by
+    # this flag either way. Versioned exactly like penalty_rate: changing
+    # it only affects batches computed under a rule approved after the
+    # change, never rewrites a past batch's already-published numbers.
+    no_remark_role_penalty_scope = Column(String, nullable=False, default="all_types", server_default="all_types")
+
     status = Column(String, nullable=False, default="draft")
     effective_from = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     effective_to = Column(DateTime(timezone=True), nullable=True)

@@ -77,35 +77,6 @@ export function MagnifyingCaseIllustration(props: Props) {
   )
 }
 
-/** Datasets -- a tray of data rows being scanned, one row flagged. */
-export function DatasetScanIllustration(props: Props) {
-  return (
-    <svg viewBox="0 0 200 160" fill="none" {...props}>
-      <defs>
-        <Glow id="scan-glow" />
-        <linearGradient id="scan-line" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={NEON} stopOpacity="0" />
-          <stop offset="0.5" stopColor={NEON} stopOpacity="0.5" />
-          <stop offset="1" stopColor={NEON} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <rect x="34" y="34" width="132" height="96" rx="6" fill="#0a0a0c" stroke={SLATE_LIGHT} strokeOpacity="0.5" strokeWidth="1.5" />
-      {[0, 1, 2, 3, 4].map((i) => {
-        const y = 50 + i * 16
-        const flagged = i === 2
-        return (
-          <g key={i}>
-            <rect x="46" y={y} width="108" height="9" rx="2" fill={flagged ? undefined : '#111318'} stroke={flagged ? GOLD : SLATE} strokeWidth="1" />
-            {flagged && <rect x="46" y={y} width="108" height="9" rx="2" fill={GOLD} fillOpacity="0.12" />}
-            <rect x="49" y={y + 2.5} width={flagged ? 30 : 44} height="4" rx="2" fill={flagged ? GOLD : SLATE_LIGHT} fillOpacity={flagged ? 1 : 0.5} />
-          </g>
-        )
-      })}
-      <rect x="34" y="66" width="132" height="12" fill="url(#scan-line)" filter="url(#scan-glow)" />
-    </svg>
-  )
-}
-
 /** Weekly Revenue Closure / Delayed Cash Billing -- a stack of billing
  * documents with a verified/settled coin badge. */
 export function LedgerStackIllustration(props: Props) {

@@ -333,6 +333,24 @@ def review_bill_incident(
     return _incidents_with_case_ids(db, [incident])[0]
 
 
+@router.post("/bills/{incident_id}/revoke-review", response_model=BillIncidentOut)
+def revoke_bill_incident_review(
+    incident_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_role(*VIGILANCE_ROLES)),
+):
+    """Undoes a mistaken Considered/Not Considered click -- clears the
+    verdict so the incident drops back out of Action Taken and back into
+    the Review Queue for a fresh decision. 400s if the incident was never
+    reviewed (nothing to undo). Mirrors DCB's revoke_bill_review exactly."""
+    incident = _get_incident_or_404(db, incident_id)
+    try:
+        incident = calc_service.revoke_bill_incident_review(db, incident=incident)
+    except calc_service.BillIncidentNotReviewedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return _incidents_with_case_ids(db, [incident])[0]
+
+
 @router.post("/bills/{incident_id}/mark-no-remark-received", response_model=NoRemarkIncidentOut)
 def mark_no_remark_received(
     incident_id: int, db: Session = Depends(get_db), _user: User = Depends(require_role(*VIGILANCE_ROLES))
@@ -348,6 +366,35 @@ def mark_no_remark_received(
 # Response portal (Vigilance side) + Centers Activity + notifications --
 # mirrors the equivalent section of app/api/delayed_cash.py.
 # ---------------------------------------------------------------------------
+
+
+@router.get("/batches/{batch_id}/links", response_model=BatchPublishResultOut)
+def get_links_for_batch(
+    batch_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_role(*VIGILANCE_ROLES)),
+):
+    """Read-only -- returns whichever centers in this batch already have a
+    response-portal link, WITHOUT minting or invalidating anything (unlike
+    publish-links below). Backs the Batches table's quick "View links"
+    action, so copying a link doesn't require re-publishing (and doesn't
+    invalidate every other center's already-shared link) just to look."""
+    batch = _get_batch_or_404(db, batch_id)
+    cases = response_service.get_published_links_for_batch(db, batch=batch)
+    return BatchPublishResultOut(
+        batch_id=batch.id,
+        links=[
+            ResponseLinkDetailOut(
+                case_id=c.id,
+                centre_code=c.centre_code,
+                centre_name=c.centre_name,
+                response_token=c.response_token,
+                response_url=f"{settings.FRONTEND_URL}/respond/weekly-revenue/{c.response_token}",
+                expires_at=c.response_token_expires_at,
+            )
+            for c in cases
+        ],
+    )
 
 
 @router.post("/batches/{batch_id}/publish-links", response_model=BatchPublishResultOut)

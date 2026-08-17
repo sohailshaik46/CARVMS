@@ -9,13 +9,11 @@ import {
   CalendarClockIcon,
   ChartIcon,
   CogIcon,
-  FolderIcon,
   HomeIcon,
   LogoutIcon,
   ReceiptIcon,
   SearchIcon,
   TrophyIcon,
-  UsersIcon,
 } from '../components/ui/Icons'
 import nephroplusLogoLight from '../assets/nephroplus-logo.svg'
 import nephroplusLogoDark from '../assets/nephroplus-logo-dark.svg'
@@ -31,14 +29,12 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', end: true, roles: ['Admin', 'Auditor'], icon: HomeIcon },
-  { to: '/datasets', label: 'Datasets', icon: FolderIcon },
   { to: '/weekly-revenue-closure', label: 'Weekly Revenue Closure', roles: ['Admin', 'Auditor'], icon: CalendarClockIcon },
   { to: '/delayed-cash', label: 'Delayed Cash Billing', roles: ['Admin', 'Auditor'], icon: ReceiptIcon },
   { to: '/reports', label: 'Reports', roles: ['Admin', 'Auditor'], icon: ChartIcon },
   { to: '/center-rankings', label: 'Center Rankings', roles: ['Admin', 'Auditor'], icon: TrophyIcon },
   { to: '/settings', label: 'Settings', icon: CogIcon },
   { to: '/admin/org', label: 'Org Hierarchy', roles: ['Admin'], icon: BuildingIcon },
-  { to: '/admin/users', label: 'Users', roles: ['Admin'], icon: UsersIcon },
 ]
 
 export function AppShell() {
@@ -102,7 +98,7 @@ export function AppShell() {
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search bills, incidents, datasets…"
+                placeholder="Search bills, incidents, centers…"
                 className="w-full rounded-md border border-slate-300 bg-slate-50 py-1.5 pl-8 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:outline focus:outline-2 focus:outline-brand-500/25 dark:border-vigilance-600/25 dark:bg-void-950 dark:text-slate-100 dark:focus:border-neon-500 dark:focus:outline-neon-500/25"
               />
             </div>

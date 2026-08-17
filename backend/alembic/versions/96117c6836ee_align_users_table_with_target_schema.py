@@ -8,7 +8,7 @@ and made every row truthy), adds created_at/updated_at, and adds the
 role CHECK constraint. Run only after backing up carvms.db.
 
 Revision ID: 96117c6836ee
-Revises:
+Revises: cfeced8a6088
 Create Date: 2026-08-13 00:08:15.177952
 
 """
@@ -20,7 +20,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '96117c6836ee'
-down_revision: Union[str, Sequence[str], None] = None
+down_revision: Union[str, Sequence[str], None] = 'cfeced8a6088'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

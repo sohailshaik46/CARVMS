@@ -27,8 +27,10 @@ import {
   getCaseIncidents,
   getCaseResponses,
   getCentersActivity,
+  getPublishedLinksForBatch,
   getReviewQueue,
   listBatches,
+  revokeBillIncidentReview,
   listCenterPenalties,
   listNoRemarkIncidents,
   listRolePenalties,
@@ -80,6 +82,38 @@ const INCIDENT_TYPE_TOOLTIPS: Record<string, string> = {
   no_billing_no_daily_report: 'Neither a bill nor a daily report was submitted for that day -- the more serious combination of the two incident types above.',
 }
 
+/** Beside the week/batch filter in both Review Queue and Action Taken --
+ * lists only centers actually present in whatever's already been filtered
+ * down (the selected week/batch), never every center in the system, so
+ * picking one always jumps to real rows instead of an empty result.
+ * Mirrors DelayedCashBillingPage.tsx's identical component exactly. */
+function CenterFilterSelect({
+  items,
+  value,
+  onChange,
+}: {
+  items: { centre_code: string; centre_name: string }[]
+  value: string | 'all'
+  onChange: (value: string | 'all') => void
+}) {
+  const centers = Array.from(new Map(items.map((i) => [i.centre_code, i.centre_name])).entries()).sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  )
+
+  return (
+    <Tooltip text="Search/jump to one center -- only lists centers with a row in the currently selected week or batch above.">
+      <Select className="w-56 text-sm" value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="all">Search centers…</option>
+        {centers.map(([code, name]) => (
+          <option key={code} value={code}>
+            {code} -- {name}
+          </option>
+        ))}
+      </Select>
+    </Tooltip>
+  )
+}
+
 /** Weekly Revenue Closure -- a deliberately separate engine from Delayed
  * Cash Billing (different formula: flat 6.25% per delinquent center per
  * week, escalating to Cluster Manager and, in the "no remark" section
@@ -106,6 +140,7 @@ export function WeeklyRevenueClosurePage() {
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null)
   const [centersBatchId, setCentersBatchId] = useState<number | null>(null)
   const [publishResult, setPublishResult] = useState<WrcBatchPublishResult | null>(null)
+  const [viewLinksResult, setViewLinksResult] = useState<WrcBatchPublishResult | null>(null)
   const [batchToDelete, setBatchToDelete] = useState<WeeklyRevenueClosureBatch | null>(null)
   const queryClient = useQueryClient()
   const { showToast } = useToast()
@@ -123,6 +158,15 @@ export function WeeklyRevenueClosurePage() {
     mutationFn: (batchId: number) => publishLinksForBatch(batchId),
     onSuccess: (result) => setPublishResult(result),
     onError: (err) => showToast(apiErrorMessage(err, 'Could not publish links'), 'error'),
+  })
+
+  // Read-only -- unlike publishMutation above, never mints/invalidates
+  // tokens; just fetches whatever links already exist for this batch so
+  // they can be viewed/copied straight from the Batches table.
+  const viewLinksMutation = useMutation({
+    mutationFn: (batchId: number) => getPublishedLinksForBatch(batchId),
+    onSuccess: (result) => setViewLinksResult(result),
+    onError: (err) => showToast(apiErrorMessage(err, 'Could not load links'), 'error'),
   })
 
   const deleteMutation = useMutation({
@@ -206,7 +250,18 @@ export function WeeklyRevenueClosurePage() {
                             {formatDate(batch.period_start)} – {formatDate(batch.period_end)}
                           </td>
                           <td className="py-2 pr-4">
-                            <Badge tone="status">{batch.status}</Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge tone="status">{batch.status}</Badge>
+                              <Tooltip text="Shows every response link already generated for this batch so you can copy one straight from here -- read-only, doesn't mint or invalidate any link. Shows empty until you Publish links at least once.">
+                                <button
+                                  className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300 disabled:opacity-50"
+                                  disabled={viewLinksMutation.isPending}
+                                  onClick={() => viewLinksMutation.mutate(batch.id)}
+                                >
+                                  View links
+                                </button>
+                              </Tooltip>
+                            </div>
                           </td>
                           <td className="py-2 pr-4">{formatDate(batch.created_at)}</td>
                           <td className="py-2 pr-4">
@@ -214,7 +269,14 @@ export function WeeklyRevenueClosurePage() {
                               <Tooltip text="Opens this week's KPI dashboard -- total incidents, considered/not-considered counts, center penalties, and Cluster/Zonal Manager escalation.">
                                 <button
                                   className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300"
-                                  onClick={() => setSelectedBatchId(batch.id)}
+                                  onClick={() => {
+                                    // Mutually exclusive with "View centers" below -- see the
+                                    // identical comment in DelayedCashBillingPage.tsx for why:
+                                    // without clearing the other panel's id, both cards stack
+                                    // and Dashboard (rendered first) hides that anything changed.
+                                    setCentersBatchId(null)
+                                    setSelectedBatchId(batch.id)
+                                  }}
                                 >
                                   View dashboard
                                 </button>
@@ -222,7 +284,10 @@ export function WeeklyRevenueClosurePage() {
                               <Tooltip text="Opens the centers in this batch with their zone/cluster, plus each center's all-time repeat-non-compliance count and considered/not-considered history.">
                                 <button
                                   className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300"
-                                  onClick={() => setCentersBatchId(batch.id)}
+                                  onClick={() => {
+                                    setSelectedBatchId(null)
+                                    setCentersBatchId(batch.id)
+                                  }}
                                 >
                                   View centers
                                 </button>
@@ -256,10 +321,18 @@ export function WeeklyRevenueClosurePage() {
           </Card>
 
           {selectedBatchId != null && (
-            <BatchDashboard batchId={selectedBatchId} onClose={() => setSelectedBatchId(null)} />
+            <BatchDashboard
+              batchId={selectedBatchId}
+              onClose={() => setSelectedBatchId(null)}
+              onSwitchBatch={setSelectedBatchId}
+            />
           )}
           {centersBatchId != null && (
-            <WrcCentersBreakdown batchId={centersBatchId} onClose={() => setCentersBatchId(null)} />
+            <WrcCentersBreakdown
+              batchId={centersBatchId}
+              onClose={() => setCentersBatchId(null)}
+              onSwitchBatch={setCentersBatchId}
+            />
           )}
         </>
       )}
@@ -271,6 +344,9 @@ export function WeeklyRevenueClosurePage() {
       {tab === 'notifications' && <WrcContactChangeNotificationsTab />}
 
       {publishResult && <PublishResultModal result={publishResult} onClose={() => setPublishResult(null)} />}
+      {viewLinksResult && (
+        <PublishResultModal result={viewLinksResult} onClose={() => setViewLinksResult(null)} mode="view" />
+      )}
 
       {batchToDelete && (
         <Modal title="Delete this batch?" onClose={() => setBatchToDelete(null)}>
@@ -319,10 +395,22 @@ export function WeeklyRevenueClosurePage() {
   )
 }
 
-function BatchDashboard({ batchId, onClose }: { batchId: number; onClose: () => void }) {
+function BatchDashboard({
+  batchId,
+  onClose,
+  onSwitchBatch,
+}: {
+  batchId: number
+  onClose: () => void
+  onSwitchBatch: (batchId: number) => void
+}) {
   const queryClient = useQueryClient()
   const { showToast } = useToast()
   const [showNoRemark, setShowNoRemark] = useState(false)
+
+  // Shares the Batches tab's own query -- so the picker below doesn't cost
+  // a second request and always lists the exact same batches shown there.
+  const { data: batches } = useQuery({ queryKey: ['wrc-batches'], queryFn: listBatches })
 
   const { data: summary, isLoading, error } = useQuery({
     queryKey: ['wrc-batch-summary', batchId],
@@ -359,7 +447,20 @@ function BatchDashboard({ batchId, onClose }: { batchId: number; onClose: () => 
       <CardHeader
         title={summary ? `${summary.batch.week_label} -- Dashboard` : `Batch #${batchId} -- Dashboard`}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Tooltip text="Switch this dashboard to a different week without closing it -- picks up right where you are, no need to go back to the Batches tab first.">
+              <Select
+                className="w-56 text-sm"
+                value={String(batchId)}
+                onChange={(e) => onSwitchBatch(Number(e.target.value))}
+              >
+                {batches?.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.week_label}
+                  </option>
+                ))}
+              </Select>
+            </Tooltip>
             <Tooltip text="Downloads this week's full Data + Penalty workbook as an Excel file, in the same 3-sheet shape as the proven reference workbook.">
               <Button variant="secondary" isLoading={exportMutation.isPending} onClick={() => exportMutation.mutate()}>
                 Export Workbook
@@ -561,28 +662,126 @@ function NoRemarkCentersModal({ batchId, onClose }: { batchId: number; onClose: 
   )
 }
 
+interface WrcRollupRow {
+  key: string
+  centerCount: number
+  thisBatchIncidents: number
+  allTimeConsidered: number
+  allTimeNotConsidered: number
+  repeatCentersCount: number
+  centers: WrcCenterBreakdown[]
+  repeatCenters: WrcCenterBreakdown[]
+}
+
 /** Aggregates a list of per-center breakdown rows into one rollup row per
- * distinct key (cluster or zone) -- "Unknown" groups centers whose source
- * incident rows never carried that column, rather than dropping them. */
-function rollupBreakdown(
-  rows: WrcCenterBreakdown[],
-  keyFn: (r: WrcCenterBreakdown) => string,
-): { key: string; centerCount: number; thisBatchIncidents: number; allTimeConsidered: number; allTimeNotConsidered: number; repeatCentersCount: number }[] {
-  const groups = new Map<string, { key: string; centerCount: number; thisBatchIncidents: number; allTimeConsidered: number; allTimeNotConsidered: number; repeatCentersCount: number }>()
+ * distinct key (cluster/zone/zonal manager) -- "Unknown" groups centers
+ * whose source incident rows never carried that column, rather than
+ * dropping them. Keeps the actual matching rows (not just their counts) so
+ * a rollup number can drill into exactly which centers make it up -- see
+ * RollupSection's onDrill. */
+function rollupBreakdown(rows: WrcCenterBreakdown[], keyFn: (r: WrcCenterBreakdown) => string): WrcRollupRow[] {
+  const groups = new Map<string, WrcRollupRow>()
   for (const r of rows) {
     const key = keyFn(r) || 'Unknown'
-    const g = groups.get(key) ?? { key, centerCount: 0, thisBatchIncidents: 0, allTimeConsidered: 0, allTimeNotConsidered: 0, repeatCentersCount: 0 }
+    const g = groups.get(key) ?? {
+      key, centerCount: 0, thisBatchIncidents: 0, allTimeConsidered: 0, allTimeNotConsidered: 0,
+      repeatCentersCount: 0, centers: [], repeatCenters: [],
+    }
     g.centerCount += 1
     g.thisBatchIncidents += r.this_batch_incident_count
     g.allTimeConsidered += r.all_time_considered_count
     g.allTimeNotConsidered += r.all_time_not_considered_count
-    if (r.all_time_batch_count > 1) g.repeatCentersCount += 1
+    g.centers.push(r)
+    if (r.all_time_batch_count > 1) {
+      g.repeatCentersCount += 1
+      g.repeatCenters.push(r)
+    }
     groups.set(key, g)
   }
   return Array.from(groups.values()).sort((a, b) => b.thisBatchIncidents - a.thisBatchIncidents)
 }
 
-function WrcCentersBreakdown({ batchId, onClose }: { batchId: number; onClose: () => void }) {
+/** A clickable rollup count -- opens the drilldown modal listing exactly
+ * which centers make up this number, instead of leaving it as a dead-end
+ * figure. `count` of 0 stays plain text (nothing to drill into). */
+function WrcDrillableCount({
+  count,
+  label,
+  centers,
+  onDrill,
+}: {
+  count: number
+  label: string
+  centers: WrcCenterBreakdown[]
+  onDrill: (label: string, centers: WrcCenterBreakdown[]) => void
+}) {
+  if (count === 0) return <span className="text-slate-400 dark:text-slate-500">0</span>
+  return (
+    <button type="button" onClick={() => onDrill(label, centers)} className="font-medium text-np-calming-blue hover:underline">
+      {count}
+    </button>
+  )
+}
+
+/** Lists exactly which centers make up a clicked rollup number. */
+function WrcCenterDrilldownModal({
+  label,
+  centers,
+  onClose,
+}: {
+  label: string
+  centers: WrcCenterBreakdown[]
+  onClose: () => void
+}) {
+  return (
+    <Modal title={label} onClose={onClose} wide>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
+            <tr>
+              <th className="py-2 pr-4">Center</th>
+              <th className="py-2 pr-4">Zone</th>
+              <th className="py-2 pr-4">Cluster</th>
+              <th className="py-2 pr-4">Zonal Manager</th>
+              <th className="py-2 pr-4">This Week's Incidents</th>
+              <th className="py-2 pr-4">All-Time Weeks Flagged</th>
+              <th className="py-2 pr-4">All-Time Considered</th>
+              <th className="py-2 pr-4">All-Time Not Considered</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+            {centers.map((c) => (
+              <tr key={c.centre_code}>
+                <td className="py-2 pr-4">
+                  {c.centre_code}
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{c.centre_name}</div>
+                </td>
+                <td className="py-2 pr-4">{c.zone ?? <span className="text-slate-400 dark:text-slate-500">Unknown</span>}</td>
+                <td className="py-2 pr-4">{c.cluster ?? <span className="text-slate-400 dark:text-slate-500">Unknown</span>}</td>
+                <td className="py-2 pr-4">{c.zonal_manager ?? <span className="text-slate-400 dark:text-slate-500">Unknown</span>}</td>
+                <td className="py-2 pr-4">{c.this_batch_incident_count}</td>
+                <td className="py-2 pr-4">{c.all_time_batch_count}</td>
+                <td className="py-2 pr-4">{c.all_time_considered_count}</td>
+                <td className="py-2 pr-4">{c.all_time_not_considered_count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Modal>
+  )
+}
+
+function WrcCentersBreakdown({
+  batchId,
+  onClose,
+  onSwitchBatch,
+}: {
+  batchId: number
+  onClose: () => void
+  onSwitchBatch: (batchId: number) => void
+}) {
+  const { data: batches } = useQuery({ queryKey: ['wrc-batches'], queryFn: listBatches })
   const { data, isLoading, error } = useQuery({
     queryKey: ['wrc-centers-breakdown', batchId],
     queryFn: () => getBatchCentersBreakdown(batchId),
@@ -590,17 +789,35 @@ function WrcCentersBreakdown({ batchId, onClose }: { batchId: number; onClose: (
 
   const byCluster = data ? rollupBreakdown(data, (r) => r.cluster ?? 'Unknown') : []
   const byZone = data ? rollupBreakdown(data, (r) => r.zone ?? 'Unknown') : []
+  const byZonalManager = data ? rollupBreakdown(data, (r) => r.zonal_manager ?? 'Unknown') : []
+  const [drilldown, setDrilldown] = useState<{ label: string; centers: WrcCenterBreakdown[] } | null>(null)
+  const handleDrill = (label: string, drillCenters: WrcCenterBreakdown[]) => setDrilldown({ label, centers: drillCenters })
 
   return (
     <Card>
       <CardHeader
         title="Centers -- Cluster / Zone / Repeat Non-Compliance"
         actions={
-          <Tooltip text="Hides this list and returns to the batches list -- doesn't change any data.">
-            <button onClick={onClose} className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
-              Close panel
-            </button>
-          </Tooltip>
+          <div className="flex flex-wrap items-center gap-2">
+            <Tooltip text="Switch this list to a different week without closing it -- picks up right where you are, no need to go back to the Batches tab first.">
+              <Select
+                className="w-56 text-sm"
+                value={String(batchId)}
+                onChange={(e) => onSwitchBatch(Number(e.target.value))}
+              >
+                {batches?.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.week_label}
+                  </option>
+                ))}
+              </Select>
+            </Tooltip>
+            <Tooltip text="Hides this list and returns to the batches list -- doesn't change any data.">
+              <button onClick={onClose} className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
+                Close panel
+              </button>
+            </Tooltip>
+          </div>
         }
       />
       <CardBody className="space-y-6">
@@ -614,8 +831,9 @@ function WrcCentersBreakdown({ batchId, onClose }: { batchId: number; onClose: (
               that has shown up with an incident in more than one week to date.
             </p>
 
-            <RollupSection title="By Cluster" rows={byCluster} />
-            <RollupSection title="By Zone" rows={byZone} />
+            <RollupSection title="By Cluster" rows={byCluster} onDrill={handleDrill} />
+            <RollupSection title="By Zone" rows={byZone} onDrill={handleDrill} />
+            <RollupSection title="By Zonal Manager" rows={byZonalManager} onDrill={handleDrill} />
 
             <div>
               <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">All Centers in This Batch</h4>
@@ -626,6 +844,7 @@ function WrcCentersBreakdown({ batchId, onClose }: { batchId: number; onClose: (
                       <th className="py-2 pr-4">Center</th>
                       <th className="py-2 pr-4">Zone</th>
                       <th className="py-2 pr-4">Cluster</th>
+                      <th className="py-2 pr-4">Zonal Manager</th>
                       <th className="py-2 pr-4">This Week</th>
                       <th className="py-2 pr-4">All-Time Weeks Flagged</th>
                       <th className="py-2 pr-4">All-Time Considered</th>
@@ -641,6 +860,7 @@ function WrcCentersBreakdown({ batchId, onClose }: { batchId: number; onClose: (
                         </td>
                         <td className="py-2 pr-4">{r.zone ?? <span className="text-slate-400 dark:text-slate-500">Unknown</span>}</td>
                         <td className="py-2 pr-4">{r.cluster ?? <span className="text-slate-400 dark:text-slate-500">Unknown</span>}</td>
+                        <td className="py-2 pr-4">{r.zonal_manager ?? <span className="text-slate-400 dark:text-slate-500">Unknown</span>}</td>
                         <td className="py-2 pr-4">
                           {r.this_batch_considered_count > 0 && (
                             <Badge tone="status">{`${r.this_batch_considered_count} considered`}</Badge>
@@ -670,6 +890,9 @@ function WrcCentersBreakdown({ batchId, onClose }: { batchId: number; onClose: (
           </>
         )}
       </CardBody>
+      {drilldown && (
+        <WrcCenterDrilldownModal label={drilldown.label} centers={drilldown.centers} onClose={() => setDrilldown(null)} />
+      )}
     </Card>
   )
 }
@@ -677,11 +900,14 @@ function WrcCentersBreakdown({ batchId, onClose }: { batchId: number; onClose: (
 function RollupSection({
   title,
   rows,
+  onDrill,
 }: {
   title: string
-  rows: { key: string; centerCount: number; thisBatchIncidents: number; allTimeConsidered: number; allTimeNotConsidered: number; repeatCentersCount: number }[]
+  rows: WrcRollupRow[]
+  onDrill: (label: string, centers: WrcCenterBreakdown[]) => void
 }) {
   if (rows.length === 0) return null
+  const dimension = title.replace('By ', '')
   return (
     <div>
       <h4 className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</h4>
@@ -689,23 +915,61 @@ function RollupSection({
         <table className="w-full text-left text-sm">
           <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
             <tr>
-              <th className="py-2 pr-4">{title.replace('By ', '')}</th>
-              <th className="py-2 pr-4">Centers</th>
-              <th className="py-2 pr-4">This Week's Incidents</th>
-              <th className="py-2 pr-4">Repeat Centers</th>
-              <th className="py-2 pr-4">All-Time Considered</th>
-              <th className="py-2 pr-4">All-Time Not Considered</th>
+              <th className="py-2 pr-4">{dimension}</th>
+              <th className="py-2 pr-4">
+                <Tooltip text={`How many distinct centers fall under this ${dimension.toLowerCase()}. Click a row's Center count to see which ones.`}>
+                  <span className="cursor-help underline decoration-dotted">Centers</span>
+                </Tooltip>
+              </th>
+              <th className="py-2 pr-4">
+                <Tooltip text="How many incidents in THIS week/batch belong to centers under this row -- click to see them.">
+                  <span className="cursor-help underline decoration-dotted">This Week's Incidents</span>
+                </Tooltip>
+              </th>
+              <th className="py-2 pr-4">
+                <Tooltip text="Centers under this row that have appeared in more than one week all-time -- a genuine repeat, not just multiple incidents in one week. Click to see which centers.">
+                  <span className="cursor-help underline decoration-dotted">Repeat Centers</span>
+                </Tooltip>
+              </th>
+              <th className="py-2 pr-4">
+                <Tooltip text="All-time count of incidents under this row's centers marked Considered -- click to see which centers.">
+                  <span className="cursor-help underline decoration-dotted">All-Time Considered</span>
+                </Tooltip>
+              </th>
+              <th className="py-2 pr-4">
+                <Tooltip text="All-time count of incidents under this row's centers marked Not Considered -- click to see which centers.">
+                  <span className="cursor-help underline decoration-dotted">All-Time Not Considered</span>
+                </Tooltip>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
             {rows.map((r) => (
               <tr key={r.key}>
                 <td className="py-2 pr-4 font-medium">{r.key}</td>
-                <td className="py-2 pr-4">{r.centerCount}</td>
+                <td className="py-2 pr-4">
+                  <WrcDrillableCount count={r.centerCount} label={`${dimension}: ${r.key} -- all centers`} centers={r.centers} onDrill={onDrill} />
+                </td>
                 <td className="py-2 pr-4">{r.thisBatchIncidents}</td>
-                <td className="py-2 pr-4">{r.repeatCentersCount}</td>
-                <td className="py-2 pr-4">{r.allTimeConsidered}</td>
-                <td className="py-2 pr-4">{r.allTimeNotConsidered}</td>
+                <td className="py-2 pr-4">
+                  <WrcDrillableCount count={r.repeatCentersCount} label={`${dimension}: ${r.key} -- repeat centers`} centers={r.repeatCenters} onDrill={onDrill} />
+                </td>
+                <td className="py-2 pr-4">
+                  <WrcDrillableCount
+                    count={r.allTimeConsidered}
+                    label={`${dimension}: ${r.key} -- centers with an all-time Considered incident`}
+                    centers={r.centers.filter((c) => c.all_time_considered_count > 0)}
+                    onDrill={onDrill}
+                  />
+                </td>
+                <td className="py-2 pr-4">
+                  <WrcDrillableCount
+                    count={r.allTimeNotConsidered}
+                    label={`${dimension}: ${r.key} -- centers with an all-time Not Considered incident`}
+                    centers={r.centers.filter((c) => c.all_time_not_considered_count > 0)}
+                    onDrill={onDrill}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -728,6 +992,7 @@ function ReviewQueueTab() {
   const [remarksDraft, setRemarksDraft] = useState<Record<number, string>>({})
   const [weekFilter, setWeekFilter] = useState<number | 'all'>(batchParam ? Number(batchParam) : 'all')
   const [typeFilter, setTypeFilter] = useState<WrcIncidentType | 'all'>('all')
+  const [centerFilter, setCenterFilter] = useState<string | 'all'>('all')
 
   const { data: batches } = useQuery({ queryKey: ['wrc-batches'], queryFn: listBatches })
   const {
@@ -750,7 +1015,9 @@ function ReviewQueueTab() {
     {} as Record<WrcIncidentType, number>,
   )
 
-  const incidents = incidentsForWeek?.filter((i) => typeFilter === 'all' || i.mis_final_remark === typeFilter)
+  const incidents = incidentsForWeek
+    ?.filter((i) => typeFilter === 'all' || i.mis_final_remark === typeFilter)
+    .filter((i) => centerFilter === 'all' || i.centre_code === centerFilter)
 
   const reviewMutation = useMutation({
     mutationFn: ({ id, decision, centerRemarks }: { id: number; decision: 'considered' | 'not_considered'; centerRemarks?: string }) =>
@@ -776,18 +1043,21 @@ function ReviewQueueTab() {
       <CardHeader
         title="Incidents Awaiting a Vigilance Verdict"
         actions={
-          <Select
-            className="w-56 text-sm"
-            value={weekFilter === 'all' ? 'all' : String(weekFilter)}
-            onChange={(e) => setWeekFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          >
-            <option value="all">All weeks</option>
-            {batches?.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.week_label}
-              </option>
-            ))}
-          </Select>
+          <div className="flex flex-wrap gap-2">
+            <Select
+              className="w-56 text-sm"
+              value={weekFilter === 'all' ? 'all' : String(weekFilter)}
+              onChange={(e) => setWeekFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+            >
+              <option value="all">All weeks</option>
+              {batches?.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.week_label}
+                </option>
+              ))}
+            </Select>
+            <CenterFilterSelect items={incidentsForWeek ?? []} value={centerFilter} onChange={setCenterFilter} />
+          </div>
         }
       />
       <CardBody>
@@ -982,14 +1252,16 @@ function NotifyCenterControl({ incident }: { incident: WrcBillIncident }) {
 
   return (
     <div className="mt-2 flex items-center gap-2">
-      <button
-        type="button"
-        disabled={notifyMutation.isPending}
-        className="rounded-md border border-np-teal/40 px-2 py-1 text-xs font-medium text-np-teal hover:bg-np-teal/10 dark:border-vigilance-700 dark:text-vigilance-400 dark:hover:bg-vigilance-900/40 disabled:opacity-40"
-        onClick={() => notifyMutation.mutate()}
-      >
-        ✉ Notify Center
-      </button>
+      <Tooltip text="Emails the center to let them know this incident's decision has been recorded -- purely informational, doesn't change the decision itself.">
+        <button
+          type="button"
+          disabled={notifyMutation.isPending}
+          className="rounded-md border border-np-teal/40 px-2 py-1 text-xs font-medium text-np-teal hover:bg-np-teal/10 dark:border-vigilance-700 dark:text-vigilance-400 dark:hover:bg-vigilance-900/40 disabled:opacity-40"
+          onClick={() => notifyMutation.mutate()}
+        >
+          ✉ Notify Center
+        </button>
+      </Tooltip>
       {lastResult && (
         <span className={`text-xs ${lastResult.sent ? 'text-np-teal dark:text-neon-400' : 'text-amber-700 dark:text-amber-400'}`}>
           {lastResult.sent ? 'Sent' : lastResult.reason}
@@ -1326,6 +1598,10 @@ function ActionTakenTab() {
   const [decisionFilter, setDecisionFilter] = useState<'all' | 'considered' | 'not_considered'>(
     decisionParam === 'considered' || decisionParam === 'not_considered' ? decisionParam : 'all',
   )
+  const [centerFilter, setCenterFilter] = useState<string | 'all'>('all')
+
+  const queryClient = useQueryClient()
+  const { showToast } = useToast()
 
   const { data: batches } = useQuery({ queryKey: ['wrc-batches'], queryFn: listBatches })
   const { data: incidentsForWeek, isLoading, error } = useQuery({
@@ -1333,25 +1609,40 @@ function ActionTakenTab() {
     queryFn: () => getActionTaken(weekFilter === 'all' ? undefined : weekFilter),
   })
 
-  const incidents = incidentsForWeek?.filter((i) => decisionFilter === 'all' || i.considered === decisionFilter)
+  const revokeMutation = useMutation({
+    mutationFn: (incidentId: number) => revokeBillIncidentReview(incidentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wrc-action-taken'] })
+      queryClient.invalidateQueries({ queryKey: ['wrc-review-queue'] })
+      showToast('Decision revoked -- back in the Review Queue')
+    },
+    onError: (err) => showToast(apiErrorMessage(err, 'Could not revoke this decision'), 'error'),
+  })
+
+  const incidents = incidentsForWeek
+    ?.filter((i) => decisionFilter === 'all' || i.considered === decisionFilter)
+    .filter((i) => centerFilter === 'all' || i.centre_code === centerFilter)
 
   return (
     <Card>
       <CardHeader
         title="Decisions Already Made"
         actions={
-          <Select
-            className="w-56 text-sm"
-            value={weekFilter === 'all' ? 'all' : String(weekFilter)}
-            onChange={(e) => setWeekFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-          >
-            <option value="all">All weeks</option>
-            {batches?.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.week_label}
-              </option>
-            ))}
-          </Select>
+          <div className="flex flex-wrap gap-2">
+            <Select
+              className="w-56 text-sm"
+              value={weekFilter === 'all' ? 'all' : String(weekFilter)}
+              onChange={(e) => setWeekFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+            >
+              <option value="all">All weeks</option>
+              {batches?.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.week_label}
+                </option>
+              ))}
+            </Select>
+            <CenterFilterSelect items={incidentsForWeek ?? []} value={centerFilter} onChange={setCenterFilter} />
+          </div>
         }
       />
       <CardBody>
@@ -1404,6 +1695,18 @@ function ActionTakenTab() {
                     </td>
                     <td className="py-2 pr-4">
                       {incident.considered && <Badge tone="status">{incident.considered}</Badge>}
+                      {incident.reviewed_at && (
+                        <Tooltip text="Undoes this decision if it was clicked by mistake -- moves the incident back into the Review Queue with no verdict, so you can decide again. Doesn't touch the incident's data, only the decision.">
+                          <button
+                            type="button"
+                            className="ml-2 text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50 dark:text-neon-pink-400 dark:hover:text-neon-pink-300"
+                            disabled={revokeMutation.isPending}
+                            onClick={() => revokeMutation.mutate(incident.id)}
+                          >
+                            Revoke
+                          </button>
+                        </Tooltip>
+                      )}
                       <RemarksAndProofDropdown caseId={incident.case_id} />
                       <NotifyCenterControl incident={incident} />
                     </td>
@@ -1563,7 +1866,15 @@ function WrcContactChangeNotificationsTab() {
   )
 }
 
-function PublishResultModal({ result, onClose }: { result: WrcBatchPublishResult; onClose: () => void }) {
+function PublishResultModal({
+  result,
+  onClose,
+  mode = 'published',
+}: {
+  result: WrcBatchPublishResult
+  onClose: () => void
+  mode?: 'published' | 'view'
+}) {
   const { showToast } = useToast()
   const singleLinkUrl = `${window.location.origin}/respond/weekly-revenue`
 
@@ -1572,57 +1883,71 @@ function PublishResultModal({ result, onClose }: { result: WrcBatchPublishResult
   }
 
   return (
-    <Modal title={`Batch #${result.batch_id} -- Published Response Links`} onClose={onClose} wide>
+    <Modal
+      title={mode === 'view' ? `Batch #${result.batch_id} -- Response Links` : `Batch #${result.batch_id} -- Published Response Links`}
+      onClose={onClose}
+      wide
+    >
       <div className="space-y-4">
-        <div className="rounded-md border border-brand-200 bg-brand-50 p-3 dark:border-vigilance-600/30 dark:bg-vigilance-500/5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-vigilance-400">
-            One link for every center
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Send this single URL in one email to everyone -- each center manager picks their own center from a
-            dropdown when they open it, and can only respond for that center.
-          </p>
-          <div className="mt-2 flex items-center gap-2">
-            <code className="flex-1 truncate rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-void-950 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-300">
-              {singleLinkUrl}
-            </code>
-            <Button type="button" variant="secondary" onClick={() => copy(singleLinkUrl)}>
-              Copy
-            </Button>
-          </div>
-        </div>
+        {result.links.length === 0 ? (
+          <EmptyState
+            title="No links published yet"
+            hint="Use Publish links on this batch first -- once minted, they'll appear here to view and copy without re-publishing."
+          />
+        ) : (
+          <>
+            <div className="rounded-md border border-brand-200 bg-brand-50 p-3 dark:border-vigilance-600/30 dark:bg-vigilance-500/5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-vigilance-400">
+                One link for every center
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Send this single URL in one email to everyone -- each center manager picks their own center from a
+                dropdown when they open it, and can only respond for that center.
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <code className="flex-1 truncate rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-void-950 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-300">
+                  {singleLinkUrl}
+                </code>
+                <Button type="button" variant="secondary" onClick={() => copy(singleLinkUrl)}>
+                  Copy
+                </Button>
+              </div>
+            </div>
 
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Individual per-center links (still work if you prefer sending separately). Publishing again always
-          mints fresh tokens, invalidating these links.
-        </p>
-        <div className="max-h-96 overflow-y-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
-              <tr>
-                <th className="py-2 pr-4">Center</th>
-                <th className="py-2 pr-4">Response Link</th>
-                <th className="py-2 pr-4"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {result.links.map((link) => (
-                <tr key={link.case_id}>
-                  <td className="py-2 pr-4">
-                    {link.centre_code}
-                    <div className="text-xs text-slate-500 dark:text-slate-400">{link.centre_name}</div>
-                  </td>
-                  <td className="max-w-xs truncate py-2 pr-4 text-xs text-slate-500 dark:text-slate-400">{link.response_url}</td>
-                  <td className="py-2 pr-4">
-                    <button className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300" onClick={() => copy(link.response_url)}>
-                      Copy
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {mode === 'view'
+                ? "Viewing the links already published for this batch -- these are read-only, so nothing was re-minted or invalidated by opening this. Use \"Publish links\" instead if you need fresh tokens."
+                : 'Individual per-center links (still work if you prefer sending separately). Publishing again always mints fresh tokens, invalidating these links.'}
+            </p>
+            <div className="max-h-96 overflow-y-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
+                  <tr>
+                    <th className="py-2 pr-4">Center</th>
+                    <th className="py-2 pr-4">Response Link</th>
+                    <th className="py-2 pr-4"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {result.links.map((link) => (
+                    <tr key={link.case_id}>
+                      <td className="py-2 pr-4">
+                        {link.centre_code}
+                        <div className="text-xs text-slate-500 dark:text-slate-400">{link.centre_name}</div>
+                      </td>
+                      <td className="max-w-xs truncate py-2 pr-4 text-xs text-slate-500 dark:text-slate-400">{link.response_url}</td>
+                      <td className="py-2 pr-4">
+                        <button className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300" onClick={() => copy(link.response_url)}>
+                          Copy
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
         <div className="flex justify-end">
           <Button type="button" variant="secondary" onClick={onClose}>
             Done

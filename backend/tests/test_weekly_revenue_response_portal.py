@@ -185,6 +185,62 @@ def test_publish_links_mints_a_link_for_every_center_in_batch(client):
 
 
 # ---------------------------------------------------------------------------
+# Read-only "view already-published links" (no re-minting)
+
+
+def test_get_links_before_publish_is_empty(client):
+    admin_token = _admin(client, "wrc_pp_admin_links_empty", "wrc_pp_admin_links_empty@example.com")
+    _, batch_id, code = _make_batch_with_incident("linksempty")
+
+    links = client.get(f"/weekly-revenue-closure/batches/{batch_id}/links", headers=_auth(admin_token))
+    assert links.status_code == 200
+    assert links.json() == {"batch_id": batch_id, "links": []}
+
+
+def test_get_links_after_publish_matches_without_reissuing_tokens(client):
+    admin_token = _admin(client, "wrc_pp_admin_links_view", "wrc_pp_admin_links_view@example.com")
+    _, batch_id, code_a = _make_batch_with_incident("linksviewa")
+    db = TestingSessionLocal()
+    try:
+        batch = wrc_svc.get_batch(db, batch_id)
+        raw = wrc_svc.RawBillIncidentInput(
+            centre_code="PP-WRC-linksviewb", centre_name="PP Test Center linksviewb",
+            incident_date=date(2026, 7, 3), mis_final_remark="daily_report_not_sent",
+        )
+        wrc_svc.record_bill_incidents(db, batch=batch, raw_incidents=[raw])
+    finally:
+        db.close()
+
+    published = client.post(
+        f"/weekly-revenue-closure/batches/{batch_id}/publish-links", headers=_auth(admin_token)
+    ).json()
+    published_tokens = {link["centre_code"]: link["response_token"] for link in published["links"]}
+
+    # Viewing links must NOT mint fresh tokens -- calling it twice in a row
+    # returns the exact same tokens both times.
+    first_view = client.get(f"/weekly-revenue-closure/batches/{batch_id}/links", headers=_auth(admin_token)).json()
+    second_view = client.get(f"/weekly-revenue-closure/batches/{batch_id}/links", headers=_auth(admin_token)).json()
+
+    assert first_view["batch_id"] == batch_id
+    assert len(first_view["links"]) == 2
+    for view in (first_view, second_view):
+        view_tokens = {link["centre_code"]: link["response_token"] for link in view["links"]}
+        assert view_tokens == published_tokens
+
+    # And the already-published links still resolve through the public portal.
+    for link in first_view["links"]:
+        public = client.get(f"/public/weekly-revenue/cases/{link['response_token']}")
+        assert public.status_code == 200
+        assert public.json()["centre_code"] == link["centre_code"]
+
+
+def test_get_links_unknown_batch_404s(client):
+    admin_token = _admin(client, "wrc_pp_admin_links404", "wrc_pp_admin_links404@example.com")
+    resp = client.get("/weekly-revenue-closure/batches/999999/links", headers=_auth(admin_token))
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
 # Action Taken
 
 

@@ -67,6 +67,117 @@ def test_rule_lifecycle_create_approve_get_active():
         db.close()
 
 
+def test_create_rule_defaults_no_remark_role_scope_to_all_types():
+    """The original proven default -- matches the real Week 2/3 workbooks
+    exactly (see S6.3). A rule created without specifying the scope must
+    never silently narrow to bill_pending_only."""
+    db = TestingSessionLocal()
+    try:
+        user = _get_or_create_user(db, "wrc_scope_default")
+        rule = svc.create_rule(db, rule_version="WRC-SCOPE-DEFAULT", created_by=user)
+        assert rule.no_remark_role_penalty_scope == svc.NO_REMARK_ROLE_SCOPE_ALL_TYPES
+    finally:
+        db.close()
+
+
+def test_no_remark_role_scope_bill_pending_only_is_a_deliberate_opt_in():
+    """A later, deliberate policy change (user-confirmed to diverge from
+    the proven historical workbooks on purpose, see task tracking) --
+    versioned so it only applies to batches computed under a rule that
+    explicitly opts in, never retroactively. One center flagged
+    bill_pending, one flagged daily_report_not_sent, same cluster and
+    zonal manager, neither ever submits a remark: under bill_pending_only
+    scope, only the bill_pending center counts toward Cluster/Zonal
+    escalation (1, not 2) -- but BOTH centers still get their own flat
+    6.25% Center-level penalty regardless, since that's unaffected by this
+    flag."""
+    db = TestingSessionLocal()
+    try:
+        user = _get_or_create_user(db, "wrc_scope_billpending")
+        rule = svc.create_rule(
+            db,
+            rule_version="WRC-SCOPE-BILLPENDING-ONLY",
+            no_remark_role_penalty_scope=svc.NO_REMARK_ROLE_SCOPE_BILL_PENDING_ONLY,
+            created_by=user,
+        )
+        svc.approve_rule(db, rule=rule, approver=user)
+        assert rule.no_remark_role_penalty_scope == "bill_pending_only"
+
+        batch = svc.create_batch(
+            db, period_start=date(2026, 8, 1), period_end=date(2026, 8, 7), week_label="Scope Test Week",
+            rule=rule, created_by=user,
+        )
+        svc.record_no_remark_incidents(
+            db, batch=batch,
+            raw_incidents=[
+                svc.RawNoRemarkIncidentInput(
+                    centre_code="SCOPE-BP", centre_name="Bill Pending Center", incident_type="bill_pending",
+                    cluster="Scope Cluster", zonal_manager="Scope Zonal",
+                ),
+                svc.RawNoRemarkIncidentInput(
+                    centre_code="SCOPE-DR", centre_name="Daily Report Center", incident_type="daily_report_not_sent",
+                    cluster="Scope Cluster", zonal_manager="Scope Zonal",
+                ),
+            ],
+        )
+
+        center_penalties = svc.compute_center_penalties(db, batch=batch, rule=rule)
+        role_penalties = svc.compute_role_penalties(db, batch=batch, rule=rule)
+
+        # Center-level: BOTH centers penalized, unaffected by the scope flag.
+        by_code = {cp.centre_code: cp for cp in center_penalties}
+        assert by_code["SCOPE-BP"].no_remark_penalty == Decimal("0.0625")
+        assert by_code["SCOPE-DR"].no_remark_penalty == Decimal("0.0625")
+
+        # Role-level: only the bill_pending center counts.
+        role_by_key = {(r.role, r.section, r.person_name): r for r in role_penalties}
+        cluster = role_by_key[("cluster_manager", "no_remark", "Scope Cluster")]
+        zonal = role_by_key[("zonal_manager", "no_remark", "Scope Zonal")]
+        assert cluster.distinct_center_count == 1
+        assert cluster.penalty_amount == Decimal("0.0625")
+        assert zonal.distinct_center_count == 1
+        assert zonal.penalty_amount == Decimal("0.0625")
+    finally:
+        db.close()
+
+
+def test_no_remark_role_scope_all_types_still_counts_every_incident_type():
+    """The default/original behavior, explicitly re-asserted with the same
+    scenario as the bill_pending_only test above so the two are directly
+    comparable: with no_remark_role_penalty_scope left at its default, BOTH
+    centers count toward Cluster/Zonal escalation regardless of type."""
+    db = TestingSessionLocal()
+    try:
+        user = _get_or_create_user(db, "wrc_scope_alltypes")
+        rule = svc.create_rule(db, rule_version="WRC-SCOPE-ALLTYPES", created_by=user)
+        svc.approve_rule(db, rule=rule, approver=user)
+
+        batch = svc.create_batch(
+            db, period_start=date(2026, 8, 1), period_end=date(2026, 8, 7), week_label="Scope Test Week (all types)",
+            rule=rule, created_by=user,
+        )
+        svc.record_no_remark_incidents(
+            db, batch=batch,
+            raw_incidents=[
+                svc.RawNoRemarkIncidentInput(
+                    centre_code="SCOPE2-BP", centre_name="Bill Pending Center 2", incident_type="bill_pending",
+                    cluster="Scope Cluster 2", zonal_manager="Scope Zonal 2",
+                ),
+                svc.RawNoRemarkIncidentInput(
+                    centre_code="SCOPE2-DR", centre_name="Daily Report Center 2", incident_type="daily_report_not_sent",
+                    cluster="Scope Cluster 2", zonal_manager="Scope Zonal 2",
+                ),
+            ],
+        )
+
+        role_penalties = svc.compute_role_penalties(db, batch=batch, rule=rule)
+        role_by_key = {(r.role, r.section, r.person_name): r for r in role_penalties}
+        assert role_by_key[("cluster_manager", "no_remark", "Scope Cluster 2")].distinct_center_count == 2
+        assert role_by_key[("zonal_manager", "no_remark", "Scope Zonal 2")].distinct_center_count == 2
+    finally:
+        db.close()
+
+
 # ---------------------------------------------------------------------------
 # Full reconciliation against both real reference weeks.
 # ---------------------------------------------------------------------------

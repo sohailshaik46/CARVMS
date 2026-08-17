@@ -6,9 +6,9 @@ from app.auth.dependencies import require_role
 from app.database.database import get_db
 from app.models.user import User
 from app.schemas.auth import PhoneNumberUpdateRequest
-from app.schemas.user import ActiveUpdateRequest, OrgNodeAssignRequest, RoleUpdateRequest, UserAdminOut
+from app.schemas.user import AdminUserCreateRequest, ActiveUpdateRequest, OrgNodeAssignRequest, RoleUpdateRequest, UserAdminOut
 from app.services import user_service
-from app.services.user_service import OrgNodeNotFoundError, SelfActionError
+from app.services.user_service import DuplicateUserError, OrgNodeNotFoundError, SelfActionError
 
 router = APIRouter(
     prefix="/users",
@@ -31,6 +31,26 @@ def list_users(
     _admin: User = Depends(require_role(roles.ADMIN)),
 ):
     return user_service.list_users(db, skip=skip, limit=limit)
+
+
+@router.post("", response_model=UserAdminOut, status_code=201)
+def create_user(
+    payload: AdminUserCreateRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_role(roles.ADMIN)),
+):
+    try:
+        return user_service.create_user_as_admin(
+            db,
+            username=payload.username,
+            email=payload.email,
+            password=payload.password,
+            phone_number=payload.phone_number,
+            role=payload.role,
+            actor=admin,
+        )
+    except DuplicateUserError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.get("/{user_id}", response_model=UserAdminOut)

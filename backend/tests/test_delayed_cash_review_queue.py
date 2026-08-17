@@ -321,6 +321,56 @@ def test_action_taken_requires_vigilance_role(client):
     assert client.get("/delayed-cash/bills/action-taken").status_code == 401
 
 
+# ---------------------------------------------------------------------------
+# Revoke a mistaken review decision
+# ---------------------------------------------------------------------------
+
+
+def test_revoke_review_moves_bill_back_to_review_queue(client):
+    admin_token = _admin(client, "dcbrq_admin_revoke1", "dcbrq_admin_revoke1@example.com")
+    cp_id, bill_ids, _ = _make_case_with_bills("revoke1")
+
+    client.post(f"/delayed-cash/bills/{bill_ids[0]}/review", json={"decision": "not_considered"}, headers=_auth(admin_token))
+    assert bill_ids[0] in {b["id"] for b in client.get("/delayed-cash/bills/action-taken", headers=_auth(admin_token)).json()}
+
+    revoked = client.post(f"/delayed-cash/bills/{bill_ids[0]}/revoke-review", headers=_auth(admin_token))
+    assert revoked.status_code == 200
+    assert revoked.json()["considered"] is None
+    assert revoked.json()["reviewed_at"] is None
+
+    action_taken_ids = {b["id"] for b in client.get("/delayed-cash/bills/action-taken", headers=_auth(admin_token)).json()}
+    assert bill_ids[0] not in action_taken_ids
+    queue_ids = {b["id"] for b in client.get("/delayed-cash/bills/review-queue", headers=_auth(admin_token)).json()}
+    assert bill_ids[0] in queue_ids
+
+
+def test_revoke_review_allows_a_fresh_decision_afterwards(client):
+    admin_token = _admin(client, "dcbrq_admin_revoke2", "dcbrq_admin_revoke2@example.com")
+    cp_id, bill_ids, _ = _make_case_with_bills("revoke2")
+
+    client.post(f"/delayed-cash/bills/{bill_ids[0]}/review", json={"decision": "not_considered"}, headers=_auth(admin_token))
+    client.post(f"/delayed-cash/bills/{bill_ids[0]}/revoke-review", headers=_auth(admin_token))
+    fresh = client.post(f"/delayed-cash/bills/{bill_ids[0]}/review", json={"decision": "considered"}, headers=_auth(admin_token))
+    assert fresh.status_code == 200
+    assert fresh.json()["bill"]["considered"] == "considered"
+
+
+def test_revoke_review_400s_when_bill_was_never_reviewed(client):
+    admin_token = _admin(client, "dcbrq_admin_revoke3", "dcbrq_admin_revoke3@example.com")
+    cp_id, bill_ids, _ = _make_case_with_bills("revoke3")
+
+    resp = client.post(f"/delayed-cash/bills/{bill_ids[0]}/revoke-review", headers=_auth(admin_token))
+    assert resp.status_code == 400
+
+
+def test_revoke_review_requires_vigilance_role(client):
+    admin_token = _admin(client, "dcbrq_admin_revoke4", "dcbrq_admin_revoke4@example.com")
+    cp_id, bill_ids, _ = _make_case_with_bills("revoke4")
+    client.post(f"/delayed-cash/bills/{bill_ids[0]}/review", json={"decision": "considered"}, headers=_auth(admin_token))
+
+    assert client.post(f"/delayed-cash/bills/{bill_ids[0]}/revoke-review").status_code == 401
+
+
 def test_validated_penalty_succeeds_once_every_bill_is_terminal(client):
     admin_token = _admin(client, "dcbrq_admin9", "dcbrq_admin9@example.com")
     cp_id, bill_ids, rule_id = _make_case_with_bills("9", day_diffs=(1, 2))

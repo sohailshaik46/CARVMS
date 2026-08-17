@@ -14,13 +14,20 @@ proof before touching this file.
     cluster_manager_penalty(section) = rate x (# distinct centers under
                                them with a qualifying incident in that
                                section) -- "not_considered" section counts
-                               ONLY bill_pending-type incidents; "no_remark"
-                               section counts every incident type
-                               (confirmed by the user, doc S6.2).
-    zonal_manager_penalty   = same formula, "no_remark" section ONLY --
-                               Zonal Manager never escalates for
-                               "not_considered" (confirmed by the user,
-                               doc S6.3).
+                               ONLY bill_pending-type incidents (confirmed
+                               by the user, doc S6.2); "no_remark" section's
+                               scope depends on the active rule's
+                               no_remark_role_penalty_scope -- "all_types"
+                               (the original proven default, matches both
+                               real workbooks exactly, doc S6.3) or a later
+                               "bill_pending_only" policy change, versioned
+                               so it never rewrites an already-computed
+                               batch's numbers.
+    zonal_manager_penalty   = same "no_remark"-section formula and scope
+                               flag as Cluster Manager above -- Zonal
+                               Manager never escalates for "not_considered"
+                               at all, regardless of scope (confirmed by
+                               the user, doc S6.3).
 
 This is a deliberately separate engine from Delayed Cash Billing -- do not
 merge the two, do not reuse rates/roles across them.
@@ -59,6 +66,10 @@ class NoApprovedRuleError(ConfigurationError):
 
 PROVEN_PENALTY_RATE = Decimal("0.0625")
 
+# See WeeklyRevenueClosureRule.no_remark_role_penalty_scope's own docstring.
+NO_REMARK_ROLE_SCOPE_ALL_TYPES = "all_types"
+NO_REMARK_ROLE_SCOPE_BILL_PENDING_ONLY = "bill_pending_only"
+
 
 # ---------------------------------------------------------------------------
 # Rule management -- versioned, mirrors delayed_cash_penalty_service.py.
@@ -66,10 +77,19 @@ PROVEN_PENALTY_RATE = Decimal("0.0625")
 
 
 def create_rule(
-    db: Session, *, rule_version: str, penalty_rate: Decimal = PROVEN_PENALTY_RATE, created_by: User
+    db: Session,
+    *,
+    rule_version: str,
+    penalty_rate: Decimal = PROVEN_PENALTY_RATE,
+    no_remark_role_penalty_scope: str = NO_REMARK_ROLE_SCOPE_ALL_TYPES,
+    created_by: User,
 ) -> WeeklyRevenueClosureRule:
     rule = WeeklyRevenueClosureRule(
-        rule_version=rule_version, penalty_rate=penalty_rate, status="draft", created_by_id=created_by.id
+        rule_version=rule_version,
+        penalty_rate=penalty_rate,
+        no_remark_role_penalty_scope=no_remark_role_penalty_scope,
+        status="draft",
+        created_by_id=created_by.id,
     )
     db.add(rule)
     db.commit()
@@ -218,6 +238,11 @@ class BillIncidentNotFoundError(ConfigurationError):
     pass
 
 
+class BillIncidentNotReviewedError(ConfigurationError):
+    """Raised by revoke_bill_incident_review when there's no decision to
+    undo -- mirrors delayed_cash_penalty_service.BillNotReviewedError."""
+
+
 def get_bill_incident_or_raise(db: Session, incident_id: int) -> WeeklyRevenueBillIncident:
     incident = (
         db.query(WeeklyRevenueBillIncident).filter(WeeklyRevenueBillIncident.id == incident_id).first()
@@ -268,6 +293,27 @@ def set_bill_incident_review(
     incident.considered = decision
     incident.reviewed_by_id = reviewed_by.id if reviewed_by is not None else None
     incident.reviewed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(incident)
+    return incident
+
+
+def revoke_bill_incident_review(db: Session, *, incident: WeeklyRevenueBillIncident) -> WeeklyRevenueBillIncident:
+    """Undoes a mistaken Considered/Not Considered click -- clears
+    considered/penalty_remarks/reviewed_by/reviewed_at back to their
+    pre-review state, moving the incident from Action Taken back into the
+    Review Queue. Mirrors delayed_cash_penalty_service.
+    revoke_bill_review_decision exactly, including the same reviewed_by_id
+    guard: an incident whose `considered` came from _infer_considered()
+    reading the historical workbook's own Penalty Remarks column at ingest
+    has no reviewed_by_id, and clearing that penalty_remarks text would
+    erase real historical data nobody in this app actually decided."""
+    if incident.considered is None or incident.reviewed_by_id is None:
+        raise BillIncidentNotReviewedError("This incident has no review decision to revoke.")
+    incident.considered = None
+    incident.penalty_remarks = None
+    incident.reviewed_by_id = None
+    incident.reviewed_at = None
     db.commit()
     db.refresh(incident)
     return incident
@@ -467,13 +513,23 @@ def compute_role_penalties(
     """Cluster/Zonal Manager escalation -- rate x count of DISTINCT centers
     under them with a qualifying incident in that section. See module
     docstring for the two section-specific rules (both confirmed by the
-    user, not inferred)."""
+    user, not inferred).
+
+    rule.no_remark_role_penalty_scope controls whether the "no_remark"
+    section's Cluster/Zonal escalation counts a center regardless of
+    incident type ("all_types", the original proven default -- matches the
+    real Week 2/3 workbooks exactly) or only its bill_pending-type
+    incidents ("bill_pending_only" -- a later, deliberate policy change,
+    versioned so it only affects batches computed under a rule approved
+    after the change). Either way, the Center-level no_remark penalty and
+    the separate "not_considered" section are unaffected by this flag."""
     bill_incidents = (
         db.query(WeeklyRevenueBillIncident).filter(WeeklyRevenueBillIncident.batch_id == batch.id).all()
     )
     no_remark_incidents = (
         db.query(WeeklyRevenueNoRemarkIncident).filter(WeeklyRevenueNoRemarkIncident.batch_id == batch.id).all()
     )
+    no_remark_role_bill_pending_only = rule.no_remark_role_penalty_scope == NO_REMARK_ROLE_SCOPE_BILL_PENDING_ONLY
 
     # "not_considered" section: Cluster Manager only, bill_pending-type only.
     cluster_not_considered: dict[str, set[str]] = {}  # cluster name -> set of centre codes
@@ -481,10 +537,13 @@ def compute_role_penalties(
         if b.considered == "not_considered" and b.mis_final_remark == "bill_pending" and b.cluster:
             cluster_not_considered.setdefault(b.cluster, set()).add(b.centre_code)
 
-    # "no_remark" section: both Cluster and Zonal Manager, every incident type.
+    # "no_remark" section: both Cluster and Zonal Manager. Scope depends on
+    # the active rule's no_remark_role_penalty_scope -- see docstring above.
     cluster_no_remark: dict[str, set[str]] = {}
     zonal_no_remark: dict[str, set[str]] = {}
     for n in no_remark_incidents:
+        if no_remark_role_bill_pending_only and n.incident_type != "bill_pending":
+            continue
         if n.cluster:
             cluster_no_remark.setdefault(n.cluster, set()).add(n.centre_code)
         if n.zonal_manager:
@@ -586,6 +645,7 @@ class CenterBreakdown:
     centre_name: str
     zone: Optional[str]
     cluster: Optional[str]
+    zonal_manager: Optional[str]
     this_batch_incident_count: int
     this_batch_considered_count: int
     this_batch_not_considered_count: int
@@ -627,6 +687,7 @@ def get_batch_centers_breakdown(db: Session, *, batch: WeeklyRevenueClosureBatch
                 centre_name=first.centre_name,
                 zone=first.zone,
                 cluster=first.cluster,
+                zonal_manager=first.zonal_manager,
                 this_batch_incident_count=len(incidents),
                 this_batch_considered_count=sum(1 for i in incidents if i.considered == "considered"),
                 this_batch_not_considered_count=sum(1 for i in incidents if i.considered == "not_considered"),

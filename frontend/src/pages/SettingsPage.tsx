@@ -21,20 +21,25 @@ import {
   getEmailConnectionStatus,
   listEmailProviders,
 } from '../lib/resources/email'
+import { UsersTab } from './settings/UsersTab'
 import type { NotificationPrefs, ThemeName } from '../lib/types'
 
-type SettingsTab = 'appearance' | 'dashboard' | 'notifications' | 'security'
-const TAB_VALUES: SettingsTab[] = ['appearance', 'dashboard', 'notifications', 'security']
+type SettingsTab = 'appearance' | 'dashboard' | 'notifications' | 'security' | 'users'
+const TAB_VALUES: SettingsTab[] = ['appearance', 'dashboard', 'notifications', 'security', 'users']
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'appearance', label: 'Appearance' },
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'notifications', label: 'Notifications' },
   { key: 'security', label: 'Security' },
+  { key: 'users', label: 'Users' },
 ]
 
 export function SettingsPage() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'Admin'
+  const visibleTabs = TABS.filter((t) => t.key !== 'users' || isAdmin)
   const [params, setParams] = useSearchParams()
-  const initialTab = TAB_VALUES.find((t) => t === params.get('tab')) ?? 'appearance'
+  const initialTab = TAB_VALUES.find((t) => t === params.get('tab') && (t !== 'users' || isAdmin)) ?? 'appearance'
   const [tab, setTab] = useState<SettingsTab>(initialTab)
 
   // Same-pathname ?tab= changes (e.g. a future cross-page link into
@@ -42,8 +47,8 @@ export function SettingsPage() {
   // whenever it changes rather than only reading it once at mount.
   useEffect(() => {
     const fromUrl = TAB_VALUES.find((t) => t === params.get('tab'))
-    if (fromUrl) setTab(fromUrl)
-  }, [params])
+    if (fromUrl && (fromUrl !== 'users' || isAdmin)) setTab(fromUrl)
+  }, [params, isAdmin])
 
   function selectTab(next: SettingsTab) {
     setTab(next)
@@ -61,7 +66,7 @@ export function SettingsPage() {
       />
 
       <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700">
-        {TABS.map((t) => (
+        {visibleTabs.map((t) => (
           <button
             key={t.key}
             onClick={() => selectTab(t.key)}
@@ -80,6 +85,7 @@ export function SettingsPage() {
       {tab === 'dashboard' && <DashboardTab />}
       {tab === 'notifications' && <NotificationsTab />}
       {tab === 'security' && <SecurityTab />}
+      {tab === 'users' && isAdmin && <UsersTab />}
     </div>
   )
 }

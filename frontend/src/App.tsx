@@ -5,9 +5,6 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { DashboardPage } from './pages/DashboardPage'
-import { DatasetsPage } from './pages/DatasetsPage'
-import { DatasetDetailPage } from './pages/DatasetDetailPage'
-import { UsersAdminPage } from './pages/UsersAdminPage'
 import { OrgAdminPage } from './pages/OrgAdminPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { SearchPage } from './pages/SearchPage'
@@ -59,8 +56,6 @@ export default function App() {
 
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route path="/datasets" element={<DatasetsPage />} />
-          <Route path="/datasets/:datasetId" element={<DatasetDetailPage />} />
           <Route path="/settings" element={<SettingsPage />} />
 
           {/* Billing data (Dashboard/Reports/Search/Center Rankings/DCB/WRC)
@@ -76,8 +71,15 @@ export default function App() {
             <Route path="/delayed-cash" element={<DelayedCashBillingPage />} />
           </Route>
 
+          {/* Users moved into Settings' own Users tab -- redirect anyone
+              with the old URL bookmarked/linked rather than 404ing them. */}
+          <Route path="/admin/users" element={<Navigate to="/settings?tab=users" replace />} />
+          {/* Datasets feature removed entirely (nav, page, backend routes,
+              and data) per explicit request -- redirect old bookmarks/
+              links to the Dashboard rather than 404ing them. */}
+          <Route path="/datasets" element={<Navigate to="/" replace />} />
+          <Route path="/datasets/:datasetId" element={<Navigate to="/" replace />} />
           <Route element={<RequireRole roles={['Admin']} />}>
-            <Route path="/admin/users" element={<UsersAdminPage />} />
             <Route path="/admin/org" element={<OrgAdminPage />} />
           </Route>
         </Route>

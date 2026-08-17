@@ -358,3 +358,59 @@ def test_publish_unknown_batch_404s(client):
     admin_token = _admin(client, "dcbu_admin_publish404", "dcbu_admin_publish404@example.com")
     resp = client.post("/delayed-cash/batches/999999/publish", headers=_auth(admin_token))
     assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Read-only "view already-published links" (no re-minting)
+# ---------------------------------------------------------------------------
+
+
+def test_get_links_before_publish_is_empty(client):
+    _ensure_approved_rule("DCB-UPLOAD-LINKS-EMPTY")
+    admin_token = _admin(client, "dcbu_admin_links_empty", "dcbu_admin_links_empty@example.com")
+
+    rows = [["906-D-C", "Links Center D", "PB-D1", date(2026, 7, 1), datetime(2026, 7, 2, 9, 0), date(2026, 7, 2), 1, None, None]]
+    upload_resp = _upload(client, admin_token, rows)
+    batch_id = upload_resp.json()["batch"]["id"]
+
+    links = client.get(f"/delayed-cash/batches/{batch_id}/links", headers=_auth(admin_token))
+    assert links.status_code == 200
+    assert links.json()["links"] == []
+
+
+def test_get_links_after_publish_matches_without_reissuing_tokens(client):
+    _ensure_approved_rule("DCB-UPLOAD-LINKS-VIEW")
+    admin_token = _admin(client, "dcbu_admin_links_view", "dcbu_admin_links_view@example.com")
+
+    rows = [
+        ["907-E-C", "Links Center E", "PB-E1", date(2026, 7, 1), datetime(2026, 7, 2, 9, 0), date(2026, 7, 2), 1, None, None],
+        ["908-F-C", "Links Center F", "PB-F1", date(2026, 7, 1), datetime(2026, 7, 3, 9, 0), date(2026, 7, 3), 2, None, None],
+    ]
+    upload_resp = _upload(client, admin_token, rows)
+    batch_id = upload_resp.json()["batch"]["id"]
+
+    published = client.post(f"/delayed-cash/batches/{batch_id}/publish", headers=_auth(admin_token)).json()
+    published_tokens = {link["centre_code"]: link["response_token"] for link in published["links"]}
+
+    # Viewing links must NOT mint fresh tokens -- calling it twice in a row
+    # returns the exact same tokens both times.
+    first_view = client.get(f"/delayed-cash/batches/{batch_id}/links", headers=_auth(admin_token)).json()
+    second_view = client.get(f"/delayed-cash/batches/{batch_id}/links", headers=_auth(admin_token)).json()
+
+    assert first_view["batch_id"] == batch_id
+    assert len(first_view["links"]) == 2
+    for view in (first_view, second_view):
+        view_tokens = {link["centre_code"]: link["response_token"] for link in view["links"]}
+        assert view_tokens == published_tokens
+
+    # And the already-published links still resolve through the public portal.
+    for link in first_view["links"]:
+        public = client.get(f"/public/delayed-cash/cases/{link['response_token']}")
+        assert public.status_code == 200
+        assert public.json()["centre_code"] == link["centre_code"]
+
+
+def test_get_links_unknown_batch_404s(client):
+    admin_token = _admin(client, "dcbu_admin_links404", "dcbu_admin_links404@example.com")
+    resp = client.get("/delayed-cash/batches/999999/links", headers=_auth(admin_token))
+    assert resp.status_code == 404
