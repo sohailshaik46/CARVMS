@@ -151,6 +151,12 @@ activemq-data/
 .env
 .envrc
 .venv
+*.db
+*.db.bak-*
+backend/_backups/
+.pytest_cache/
+backend/test_uploads/
+backend/uploads/
 env/
 venv/
 ENV/

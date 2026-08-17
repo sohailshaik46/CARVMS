@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database.database import SessionLocal
-from app.schemas.auth import UserRegister, UserLogin, Token
+from app.database.database import get_db
+from app.schemas.auth import UserRegister, UserLogin, Token, UserOut
 from app.services.user_service import create_user, authenticate_user
 from app.auth.security import create_access_token
 from app.auth.dependencies import get_current_user
@@ -14,19 +14,11 @@ router = APIRouter(
 )
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 # ==========================
 # Register
 # ==========================
 
-@router.post("/register")
+@router.post("/register", status_code=201)
 def register_user(
     user: UserRegister,
     db: Session = Depends(get_db)
@@ -36,7 +28,7 @@ def register_user(
     if new_user is None:
         raise HTTPException(
             status_code=400,
-            detail="Email already exists"
+            detail="Username or email already exists"
         )
 
     return {
@@ -65,6 +57,12 @@ def login(
             detail="Invalid username or password"
         )
 
+    if not db_user.is_active:
+        raise HTTPException(
+            status_code=401,
+            detail="User account is inactive"
+        )
+
     access_token = create_access_token(
         data={
             "sub": db_user.username,
@@ -82,13 +80,8 @@ def login(
 # Current Logged-in User
 # ==========================
 
-@router.get("/me")
+@router.get("/me", response_model=UserOut)
 def get_current_user_details(
     current_user: User = Depends(get_current_user)
 ):
-    return {
-        "id": current_user.id,
-        "username": current_user.username,
-        "email": current_user.email,
-        "role": current_user.role
-    }
+    return current_user

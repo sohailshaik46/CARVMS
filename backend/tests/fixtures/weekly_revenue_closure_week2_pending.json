@@ -1,0 +1,1406 @@
+{
+  "header": [
+    "Zone",
+    "Cluster",
+    "Center Code",
+    "Center Name",
+    "Date",
+    "Billed Sessions",
+    "Daily Report",
+    "Variance",
+    "Remark",
+    "Final Remarks"
+  ],
+  "rows": [
+    [
+      "AP",
+      "Veerabhadra rao",
+      "113-AP-GTR-PPP-C",
+      "Guntur PPP, AP",
+      "2026-07-09",
+      42,
+      41,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "South",
+      "Kartheek Kumar K",
+      "147-TS-HYD-SLP-C",
+      "Serilingampally, Hyderabad",
+      "2026-07-10",
+      32,
+      31,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "South",
+      "Vishnu Rajeev",
+      "148-TN-ERD-CMS-C",
+      "Erode, Tamil Nadu",
+      "2026-07-10",
+      49,
+      50,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Vishnu Rajeev",
+      "148-TN-ERD-CMS-C",
+      "Erode, Tamil Nadu",
+      "2026-07-11",
+      63,
+      62,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "South",
+      "Mohamed Naveedh",
+      "161-TN-CHE-KPK2-C",
+      "Kilpauk2, Chennai",
+      "2026-07-08",
+      6,
+      11,
+      -5,
+      "5 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Mohamed Naveedh",
+      "176-TN-CHE-KPK3-C",
+      "Kilpauk3, Chennai",
+      "2026-07-11",
+      17,
+      18,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Vaibhav Gaikwad",
+      "178-MH-PUN-MCR-C",
+      "Magarpatta City Road, Pune",
+      "2026-07-12",
+      4,
+      5,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "196-KA-BLR-STN-S",
+      "Shantinagar, Bengaluru",
+      "2026-07-08",
+      6,
+      7,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "196-KA-BLR-STN-S",
+      "Shantinagar, Bengaluru",
+      "2026-07-09",
+      7,
+      8,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "196-KA-BLR-STN-S",
+      "Shantinagar, Bengaluru",
+      "2026-07-10",
+      4,
+      5,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "AP",
+      "Veerabhadra rao",
+      "204-AP-NLR-PPP-C",
+      "Nellore PPP, AP",
+      "2026-07-04",
+      45,
+      46,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "East",
+      "Jitumani Bhuyan",
+      "212-WB-CHB-NNR-C",
+      "Nara Narayan Road, Cooch Behar",
+      "2026-07-11",
+      6,
+      5,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "West",
+      "Yashwant",
+      "213-GJ-VDD-WGD-C",
+      "Waghodia, Vadodara",
+      "2026-07-04",
+      91,
+      90,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "West",
+      "Yashwant",
+      "213-GJ-VDD-WGD-C",
+      "Waghodia, Vadodara",
+      "2026-07-08",
+      94,
+      93,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "West",
+      "Yashwant",
+      "213-GJ-VDD-WGD-C",
+      "Waghodia, Vadodara",
+      "2026-07-10",
+      107,
+      108,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Yashwant",
+      "213-GJ-VDD-WGD-C",
+      "Waghodia, Vadodara",
+      "2026-07-11",
+      88,
+      87,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "231-MH-MUM-NEU-C",
+      "Nerul, Navi Mumbai",
+      "2026-07-10",
+      20,
+      19,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "Bihar",
+      "Abhishek Kumar Rai",
+      "250-BH-BHS-PPP-C",
+      "Bihar Sharif PPP, Bihar",
+      "2026-07-01",
+      23,
+      24,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "Bihar",
+      "Abhishek Kumar Rai",
+      "250-BH-BHS-PPP-C",
+      "Bihar Sharif PPP, Bihar",
+      "2026-07-07",
+      0,
+      26,
+      -26,
+      "26 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "Bihar",
+      "Abhishek Kumar Rai",
+      "250-BH-BHS-PPP-C",
+      "Bihar Sharif PPP, Bihar",
+      "2026-07-08",
+      1,
+      25,
+      -24,
+      "24 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "Bihar",
+      "Abhishek Kumar Rai",
+      "250-BH-BHS-PPP-C",
+      "Bihar Sharif PPP, Bihar",
+      "2026-07-09",
+      18,
+      19,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Mohamed Naveedh",
+      "269-TN-CHE-THB-C",
+      "TNHB Road, Chennai",
+      "2026-07-10",
+      21,
+      22,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "Bihar",
+      "Mukul Kumar Singh",
+      "283-BH-CPR-PPP-C",
+      "Chapra PPP, Bihar",
+      "2026-07-09",
+      55,
+      54,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "Bihar",
+      "Mukul Kumar Singh",
+      "283-BH-CPR-PPP-C",
+      "Chapra PPP, Bihar",
+      "2026-07-11",
+      64,
+      63,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "West",
+      "Shobhit Kariel",
+      "291-GJ-NDD-PTR-C",
+      "Nadiad, Gujarat",
+      "2026-07-03",
+      4,
+      null,
+      4,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "West",
+      "Shobhit Kariel",
+      "291-GJ-NDD-PTR-C",
+      "Nadiad, Gujarat",
+      "2026-07-04",
+      9,
+      null,
+      9,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "West",
+      "Shobhit Kariel",
+      "291-GJ-NDD-PTR-C",
+      "Nadiad, Gujarat",
+      "2026-07-09",
+      6,
+      null,
+      6,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "West",
+      "Shobhit Kariel",
+      "291-GJ-NDD-PTR-C",
+      "Nadiad, Gujarat",
+      "2026-07-10",
+      5,
+      null,
+      5,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "West",
+      "Shobhit Kariel",
+      "291-GJ-NDD-PTR-C",
+      "Nadiad, Gujarat",
+      "2026-07-11",
+      8,
+      null,
+      8,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-01",
+      18,
+      19,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-02",
+      15,
+      18,
+      -3,
+      "3 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-03",
+      23,
+      25,
+      -2,
+      "2 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-04",
+      24,
+      27,
+      -3,
+      "3 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-06",
+      27,
+      30,
+      -3,
+      "3 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-07",
+      21,
+      26,
+      -5,
+      "5 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-08",
+      13,
+      18,
+      -5,
+      "5 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-09",
+      17,
+      23,
+      -6,
+      "6 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-10",
+      22,
+      27,
+      -5,
+      "5 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-11",
+      19,
+      22,
+      -3,
+      "3 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "332-KA-BLR-RRN-C",
+      "RR Nagar, Bengaluru",
+      "2026-07-12",
+      0,
+      1,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "337-MH-MUM-AGD-C",
+      "Agripada, Mumbai",
+      "2026-07-07",
+      34,
+      35,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "337-MH-MUM-AGD-C",
+      "Agripada, Mumbai",
+      "2026-07-08",
+      35,
+      36,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "337-MH-MUM-AGD-C",
+      "Agripada, Mumbai",
+      "2026-07-09",
+      26,
+      30,
+      -4,
+      "4 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "337-MH-MUM-AGD-C",
+      "Agripada, Mumbai",
+      "2026-07-10",
+      37,
+      40,
+      -3,
+      "3 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "337-MH-MUM-AGD-C",
+      "Agripada, Mumbai",
+      "2026-07-11",
+      34,
+      45,
+      -11,
+      "11 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "337-MH-MUM-AGD-C",
+      "Agripada, Mumbai",
+      "2026-07-12",
+      0,
+      4,
+      -4,
+      "4 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Srinivas S",
+      "354-TS-HYD-CDG-C",
+      "Chaderghat, Hyderabad",
+      "2026-07-12",
+      4,
+      5,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Kartheek Kumar K",
+      "370-TS-HYD-BJH-C",
+      "Banjara Hills 2, Hyderabad",
+      "2026-07-07",
+      52,
+      54,
+      -2,
+      "2 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "Bihar",
+      "Al Latiful Hassan",
+      "378-BH-DBG-VIR-C",
+      "VIP Road, Darbhanga",
+      "2026-07-10",
+      29,
+      30,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Mohamed Naveedh",
+      "381-TN-CHE-PHR-C",
+      "Pulianthope High Road, Chennai",
+      "2026-07-03",
+      22,
+      null,
+      22,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "South",
+      "Kartheek Kumar K",
+      "386-KA-BDR-KBR-C",
+      "Keb Road, Bidar",
+      "2026-07-11",
+      11,
+      12,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "East",
+      "Zeeshan Ahmed",
+      "388-JH-RNC-IPC-C",
+      "Indraprasth Colony, Ranchi",
+      "2026-07-08",
+      56,
+      55,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "South",
+      "Vishnu Rajeev",
+      "398-KL-TVC-AKT-C",
+      "Anakottil St, Thiruvananthapuram",
+      "2026-07-11",
+      8,
+      9,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "KA PPP",
+      "Akshay GM",
+      "442-KA-SGR-PPP-C",
+      "Sringeri PPP, Karnataka",
+      "2026-07-02",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "KA PPP",
+      "Syed Afaq Ahmed",
+      "489-KA-MYS-PPP-C",
+      "Mysuru PPP, Karnataka",
+      "2026-07-09",
+      29,
+      28,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "Nepal",
+      "Dharmesh Kumar",
+      "515-NL-BGR-GDK-C",
+      "Gandak Chowk, Birgunj",
+      "2026-07-11",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "Nepal",
+      "Dharmesh Kumar",
+      "515-NL-BGR-GDK-C",
+      "Gandak Chowk, Birgunj",
+      "2026-07-12",
+      2,
+      null,
+      2,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "Green field",
+      "Neel Patel",
+      "517-MH-SUR-RJN-C",
+      "Rangraj Nagar, Solapur",
+      "2026-07-01",
+      3,
+      4,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Shobhit Kariel",
+      "520-GJ-AHM-NVJ-S",
+      "Nava Vadaj, Ahmedabad",
+      "2026-07-09",
+      24,
+      25,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Vishnu Rajeev",
+      "54-TN-CMB-GPP-C",
+      "Coimbatore, Tamil Nadu",
+      "2026-07-09",
+      82,
+      83,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Vishnu Rajeev",
+      "54-TN-CMB-GPP-C",
+      "Coimbatore, Tamil Nadu",
+      "2026-07-11",
+      84,
+      85,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "North",
+      "Aditya Kumar",
+      "567-MP-BND-DBH-C",
+      "Daboha, Bhind",
+      "2026-07-09",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "North",
+      "Aditya Kumar",
+      "567-MP-BND-DBH-C",
+      "Daboha, Bhind",
+      "2026-07-11",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Shobhit Kariel",
+      "581-GJ-HMT-MT2-C",
+      "Motipura2, Himatnagar",
+      "2026-07-02",
+      7,
+      9,
+      -2,
+      "2 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Shobhit Kariel",
+      "581-GJ-HMT-MT2-C",
+      "Motipura2, Himatnagar",
+      "2026-07-08",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Shobhit Kariel",
+      "581-GJ-HMT-MT2-C",
+      "Motipura2, Himatnagar",
+      "2026-07-11",
+      6,
+      null,
+      6,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "Green field",
+      "Neel Patel",
+      "589-TS-BDC-BRC-C",
+      "Bhupathi Rao Colony, Bhadrachalam",
+      "2026-07-04",
+      12,
+      13,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "Green field",
+      "Neel Patel",
+      "589-TS-BDC-BRC-C",
+      "Bhupathi Rao Colony, Bhadrachalam",
+      "2026-07-05",
+      4,
+      3,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "North",
+      "Pankaj Jasrotia",
+      "596-JK-KTH-KLR-C",
+      "Kalibari, Kathua",
+      "2026-07-08",
+      47,
+      48,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "Green field",
+      "Ankit Kumar Sharma",
+      "616-PB-BTI-GNR-C",
+      "Ganesh Nagar, Bathinda",
+      "2026-07-03",
+      1,
+      3,
+      -2,
+      "2 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "Green field",
+      "Ankit Kumar Sharma",
+      "616-PB-BTI-GNR-C",
+      "Ganesh Nagar, Bathinda",
+      "2026-07-04",
+      2,
+      3,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "Green field",
+      "Ankit Kumar Sharma",
+      "616-PB-BTI-GNR-C",
+      "Ganesh Nagar, Bathinda",
+      "2026-07-06",
+      5,
+      8,
+      -3,
+      "3 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "Green field",
+      "Ankit Kumar Sharma",
+      "616-PB-BTI-GNR-C",
+      "Ganesh Nagar, Bathinda",
+      "2026-07-07",
+      1,
+      4,
+      -3,
+      "3 Bills Pending",
+      "Bill Pending"
+    ],
+    [
+      "Bihar",
+      "Al Latiful Hassan",
+      "643-BH-PKD-PPP-C",
+      "Pakri Dayal PPP, Bihar",
+      "2026-07-06",
+      4,
+      5,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Yashwant",
+      "647-GJ-VDD-CHN-C",
+      "Chhani, Vadodara",
+      "2026-07-06",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Yashwant",
+      "647-GJ-VDD-CHN-C",
+      "Chhani, Vadodara",
+      "2026-07-07",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Yashwant",
+      "647-GJ-VDD-CHN-C",
+      "Chhani, Vadodara",
+      "2026-07-08",
+      2,
+      null,
+      2,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "West",
+      "Yashwant",
+      "647-GJ-VDD-CHN-C",
+      "Chhani, Vadodara",
+      "2026-07-09",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Yashwant",
+      "647-GJ-VDD-CHN-C",
+      "Chhani, Vadodara",
+      "2026-07-10",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Yashwant",
+      "647-GJ-VDD-CHN-C",
+      "Chhani, Vadodara",
+      "2026-07-11",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Neel Patel",
+      "650-MH-CSN-CDO-C",
+      "Cidco, Chhatrapati Sambhajinagar",
+      "2026-07-11",
+      4,
+      5,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "North",
+      "Sumit Kumar",
+      "68-UP-GZB-VSH-C",
+      "Vaishali, UP",
+      "2026-07-07",
+      126,
+      127,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "82-MH-MUM-KDW-C",
+      "Kandivali West, Mumbai",
+      "2026-07-07",
+      35,
+      36,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "82-MH-MUM-KDW-C",
+      "Kandivali West, Mumbai",
+      "2026-07-09",
+      37,
+      36,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "82-MH-MUM-KDW-C",
+      "Kandivali West, Mumbai",
+      "2026-07-10",
+      39,
+      38,
+      1,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "West",
+      "Akshay Mahadev Kandre",
+      "82-MH-MUM-KDW-C",
+      "Kandivali West, Mumbai",
+      "2026-07-12",
+      2,
+      null,
+      2,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "9-KA-BLR-BVN-S",
+      "Basaveshwaranagar, Bengaluru",
+      "2026-07-03",
+      13,
+      14,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "9-KA-BLR-BVN-S",
+      "Basaveshwaranagar, Bengaluru",
+      "2026-07-05",
+      1,
+      null,
+      1,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "9-KA-BLR-BVN-S",
+      "Basaveshwaranagar, Bengaluru",
+      "2026-07-08",
+      17,
+      15,
+      2,
+      "Excess Billing  or  Incorrect Daily report",
+      "Excess billed/Incorrect Daily report"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "9-KA-BLR-BVN-S",
+      "Basaveshwaranagar, Bengaluru",
+      "2026-07-09",
+      12,
+      13,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "South",
+      "Shubham Desai",
+      "9-KA-BLR-BVN-S",
+      "Basaveshwaranagar, Bengaluru",
+      "2026-07-11",
+      15,
+      16,
+      -1,
+      " 1 Bill pending",
+      "Bill Pending"
+    ],
+    [
+      "West",
+      "Arbaj",
+      "DOC15-GJ-AHM-DOC-S",
+      "Dialysis on call, Ahmedabad",
+      "2026-07-01",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Arbaj",
+      "DOC15-GJ-AHM-DOC-S",
+      "Dialysis on call, Ahmedabad",
+      "2026-07-02",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Arbaj",
+      "DOC15-GJ-AHM-DOC-S",
+      "Dialysis on call, Ahmedabad",
+      "2026-07-03",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Arbaj",
+      "DOC15-GJ-AHM-DOC-S",
+      "Dialysis on call, Ahmedabad",
+      "2026-07-04",
+      1,
+      null,
+      1,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "West",
+      "Arbaj",
+      "DOC15-GJ-AHM-DOC-S",
+      "Dialysis on call, Ahmedabad",
+      "2026-07-06",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Arbaj",
+      "DOC15-GJ-AHM-DOC-S",
+      "Dialysis on call, Ahmedabad",
+      "2026-07-07",
+      1,
+      null,
+      1,
+      "Daily Report was not sent",
+      "Daily Report not sent"
+    ],
+    [
+      "West",
+      "Arbaj",
+      "DOC15-GJ-AHM-DOC-S",
+      "Dialysis on call, Ahmedabad",
+      "2026-07-08",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Arbaj",
+      "DOC15-GJ-AHM-DOC-S",
+      "Dialysis on call, Ahmedabad",
+      "2026-07-09",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Arbaj",
+      "DOC15-GJ-AHM-DOC-S",
+      "Dialysis on call, Ahmedabad",
+      "2026-07-10",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ],
+    [
+      "West",
+      "Arbaj",
+      "DOC15-GJ-AHM-DOC-S",
+      "Dialysis on call, Ahmedabad",
+      "2026-07-11",
+      0,
+      null,
+      0,
+      "Billing not done and Daily report was not sent",
+      "No Billing /No Daily Report"
+    ]
+  ],
+  "expected_center_incident_counts": {
+    "148-TN-ERD-CMS-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "161-TN-CHE-KPK2-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "176-TN-CHE-KPK3-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "178-MH-PUN-MCR-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "196-KA-BLR-STN-S": {
+      "bill_pending": 3,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "204-AP-NLR-PPP-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "213-GJ-VDD-WGD-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "250-BH-BHS-PPP-C": {
+      "bill_pending": 4,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "269-TN-CHE-THB-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "291-GJ-NDD-PTR-C": {
+      "bill_pending": 0,
+      "daily_report_not_sent": 5,
+      "no_billing_no_daily_report": 0
+    },
+    "332-KA-BLR-RRN-C": {
+      "bill_pending": 11,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "337-MH-MUM-AGD-C": {
+      "bill_pending": 6,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "354-TS-HYD-CDG-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "370-TS-HYD-BJH-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "378-BH-DBG-VIR-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "381-TN-CHE-PHR-C": {
+      "bill_pending": 0,
+      "daily_report_not_sent": 1,
+      "no_billing_no_daily_report": 0
+    },
+    "386-KA-BDR-KBR-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "398-KL-TVC-AKT-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "442-KA-SGR-PPP-C": {
+      "bill_pending": 0,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 1
+    },
+    "515-NL-BGR-GDK-C": {
+      "bill_pending": 0,
+      "daily_report_not_sent": 1,
+      "no_billing_no_daily_report": 1
+    },
+    "517-MH-SUR-RJN-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "520-GJ-AHM-NVJ-S": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "54-TN-CMB-GPP-C": {
+      "bill_pending": 2,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "567-MP-BND-DBH-C": {
+      "bill_pending": 0,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 2
+    },
+    "581-GJ-HMT-MT2-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 1,
+      "no_billing_no_daily_report": 1
+    },
+    "589-TS-BDC-BRC-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "596-JK-KTH-KLR-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "616-PB-BTI-GNR-C": {
+      "bill_pending": 4,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "643-BH-PKD-PPP-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "647-GJ-VDD-CHN-C": {
+      "bill_pending": 0,
+      "daily_report_not_sent": 1,
+      "no_billing_no_daily_report": 5
+    },
+    "650-MH-CSN-CDO-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "68-UP-GZB-VSH-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 0,
+      "no_billing_no_daily_report": 0
+    },
+    "82-MH-MUM-KDW-C": {
+      "bill_pending": 1,
+      "daily_report_not_sent": 1,
+      "no_billing_no_daily_report": 0
+    },
+    "9-KA-BLR-BVN-S": {
+      "bill_pending": 3,
+      "daily_report_not_sent": 1,
+      "no_billing_no_daily_report": 0
+    },
+    "DOC15-GJ-AHM-DOC-S": {
+      "bill_pending": 0,
+      "daily_report_not_sent": 2,
+      "no_billing_no_daily_report": 8
+    }
+  },
+  "expected_excess_billed_row_count": 16
+}

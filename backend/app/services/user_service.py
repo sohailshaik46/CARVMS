@@ -1,14 +1,31 @@
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
+from app.auth.roles import DEFAULT_SELF_REGISTER_ROLE
+from app.models.org import OrgNode
 from app.models.user import User
 from app.schemas.auth import UserRegister
 from app.auth.security import hash_password, verify_password
+from app.services import audit_log_service
 
 
-def create_user(db: Session, user: UserRegister):
+class SelfActionError(Exception):
+    """Raised when an admin attempts a role/activation change on their own
+    account -- always rejected server-side, never just hidden in the UI."""
 
+
+class OrgNodeNotFoundError(Exception):
+    pass
+
+
+def _user_snapshot(user: User) -> dict:
+    return {"role": user.role, "is_active": user.is_active, "org_node_id": user.org_node_id}
+
+
+def create_user(db: Session, user: UserRegister) -> User | None:
     existing_user = db.query(User).filter(
-        User.email == user.email
+        (User.email == user.email) | (User.username == user.username)
     ).first()
 
     if existing_user:
@@ -17,8 +34,8 @@ def create_user(db: Session, user: UserRegister):
     new_user = User(
         username=user.username,
         email=user.email,
-        password=hash_password(user.password),
-        role=user.role
+        password_hash=hash_password(user.password),
+        role=DEFAULT_SELF_REGISTER_ROLE,  # never trust a client-supplied role
     )
 
     db.add(new_user)
@@ -28,7 +45,7 @@ def create_user(db: Session, user: UserRegister):
     return new_user
 
 
-def authenticate_user(db: Session, username: str, password: str):
+def authenticate_user(db: Session, username: str, password: str) -> User | None:
     user = db.query(User).filter(
         User.username == username
     ).first()
@@ -36,7 +53,97 @@ def authenticate_user(db: Session, username: str, password: str):
     if not user:
         return None
 
-    if not verify_password(password, user.password):
+    if not verify_password(password, user.password_hash):
         return None
 
     return user
+
+
+def list_users(db: Session, skip: int = 0, limit: int = 50) -> list[User]:
+    limit = max(1, min(limit, 200))
+    return (
+        db.query(User)
+        .order_by(User.id)
+        .offset(max(0, skip))
+        .limit(limit)
+        .all()
+    )
+
+
+def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+    return db.query(User).filter(User.id == user_id).first()
+
+
+def update_user_role(db: Session, *, target: User, new_role: str, actor: User) -> User:
+    """Change a user's role. Never callable by the target on themselves --
+    self-promotion is rejected regardless of the actor's current role."""
+    if target.id == actor.id:
+        raise SelfActionError("Admins cannot change their own role")
+
+    before = _user_snapshot(target)
+    target.role = new_role
+    db.flush()
+
+    audit_log_service.record(
+        db,
+        actor=actor,
+        action="user.role_changed",
+        entity_type="User",
+        entity_id=target.id,
+        before=before,
+        after=_user_snapshot(target),
+    )
+    db.commit()
+    db.refresh(target)
+    return target
+
+
+def assign_org_node(db: Session, *, target: User, org_node_id: Optional[int], actor: User) -> User:
+    """Anchors (or unanchors, if org_node_id is None) a user to an org node --
+    this is how a Center/Cluster/Zonal Manager's identity and email
+    (always just their User.email, never re-typed) stay current as people
+    change over time. This is the ongoing-maintenance path the org
+    hierarchy admin page is expected to use, not a one-off upload field."""
+    if org_node_id is not None and not db.query(OrgNode).filter(OrgNode.id == org_node_id).first():
+        raise OrgNodeNotFoundError(f"Org node {org_node_id} does not exist")
+
+    before = _user_snapshot(target)
+    target.org_node_id = org_node_id
+    db.flush()
+
+    audit_log_service.record(
+        db,
+        actor=actor,
+        action="user.org_node_assigned",
+        entity_type="User",
+        entity_id=target.id,
+        before=before,
+        after=_user_snapshot(target),
+    )
+    db.commit()
+    db.refresh(target)
+    return target
+
+
+def set_user_active(db: Session, *, target: User, is_active: bool, actor: User) -> User:
+    """Activate/deactivate a user. An admin cannot deactivate their own
+    account through this endpoint -- prevents an accidental self-lockout."""
+    if target.id == actor.id:
+        raise SelfActionError("Admins cannot change their own active status")
+
+    before = _user_snapshot(target)
+    target.is_active = is_active
+    db.flush()
+
+    audit_log_service.record(
+        db,
+        actor=actor,
+        action="user.activation_changed",
+        entity_type="User",
+        entity_id=target.id,
+        before=before,
+        after=_user_snapshot(target),
+    )
+    db.commit()
+    db.refresh(target)
+    return target

@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+/* Dark mode is scoped by an ancestor ".dark" class, NOT the OS/browser
+   preference -- CARVMS's internal, authenticated surfaces (AppShell,
+   Login/Register, every admin/audit/billing page) always render dark
+   ("vigilance/investigation" theme, per explicit request), while the
+   public, unauthenticated Delayed Cash Billing response portal
+   (DelayedCashResponsePortalPage / DelayedCashOpenLinkPage /
+   DelayedCashCaseCard -- reached by a center manager from an emailed link,
+   never logged in) stays the light NephroPlus-branded surface it was
+   built as, since that's an external-facing official communication, not
+   part of "the software interface". Shared UI components (Button, Card,
+   Field, Modal, Badge, Feedback) are used by BOTH surfaces, so every one of
+   them carries a light (default) style plus a `dark:` variant -- the
+   `.dark` wrapper around AppShell/Login is what decides which applies,
+   never a toggle or system preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* NephroPlus brand palette (see docs/CARVMS_ARCHITECTURE.md / nephroplus-brand
+   skill) stays the source of truth for the public portal's light surface --
+   "brand" 500/600/700 are the exact Crimson Red tones from the guide
+   (secondary #E65E4A, primary #DD4D40, secondary #C73228); 50/100 are
+   white-blended tints of the same hue since the guide has no ultra-pale
+   red, and 200 is the guide's own light-red secondary swatch (#E6A3A3).
+   "np-*" exposes the rest of the palette (Deep Blue, Calming Blue, Teal).
+
+   "vigilance-*" is CARVMS's own internal-tool identity, not a NephroPlus
+   guest-facing color -- a muted amber/gold used for KPI emphasis and
+   investigation-themed accents on the dark surface, chosen to read as
+   "case file / evidence tag" rather than a second competing CTA color
+   (brand-600 crimson remains the one primary action color everywhere,
+   dark or light, doubling naturally as an alert/flag color for a
+   vigilance tool). */
+@theme {
+  --color-brand-50: #fcedec;
+  --color-brand-100: #f8dcd9;
+  --color-brand-200: #e6a3a3;
+  --color-brand-500: #e65e4a;
+  --color-brand-600: #dd4d40;
+  --color-brand-700: #c73228;
+
+  --color-np-deep-blue: #01486f;
+  --color-np-calming-blue: #569bd2;
+  --color-np-teal: #47bea4;
+
+  --color-risk-low: #16a34a;
+  --color-risk-medium: #ca8a04;
+  --color-risk-high: #ea580c;
+  --color-risk-critical: #dc2626;
+
+  --color-vigilance-50: #fdf8ed;
+  --color-vigilance-300: #e8c778;
+  --color-vigilance-400: #d9a94a;
+  --color-vigilance-500: #c1922f;
+  --color-vigilance-600: #9c7422;
+
+  /* Neon accent -- the "highlighter" color for hover/active/selected states
+     across the dark theme (dropdowns, active nav, focus rings), deliberately
+     distinct from vigilance-gold (which marks "this IS the current value")
+     so the two never compete for the same meaning. */
+  --color-neon-300: #7cffb8;
+  --color-neon-400: #39ff8a;
+  --color-neon-500: #12e673;
+  --color-neon-600: #0abd5c;
+
+  /* Neon pink -- a sparing SECOND accent, never competing with green for
+     the same "hover/active" meaning. Used only as small hints of variety
+     (a glow blob, a lone illustration detail, an occasional badge) --
+     deliberately not wired into any interactive state, so it stays a
+     accent flourish rather than a third competing signal color. */
+  --color-neon-pink-300: #ff8fd6;
+  --color-neon-pink-400: #ff4fc3;
+  --color-neon-pink-500: #f01fae;
+
+  /* Neon blue -- same rule as neon-pink: a sparing third hint of variety,
+     never wired into an interactive state, never competing with
+     neon-green's "hover/active" meaning. */
+  --color-neon-blue-300: #7dd8ff;
+  --color-neon-blue-400: #2ec2ff;
+  --color-neon-blue-500: #0aa3ee;
+
+  /* True near-black surfaces -- deeper than slate-950, used for the base
+     app background and dropdown/menu panels per the "black background with
+     gold and neon highlights" direction. */
+  --color-void-950: #050506;
+  --color-void-900: #0a0a0c;
+  --color-void-800: #121215;
+
+  --font-sans: "Open Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-heading: "Omnes", "Open Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+/* Global default is dark -- the public portal's own pages set an explicit
+   opaque light background on their own root element, which paints over
+   this regardless of what body declares underneath. */
+body {
+  @apply bg-void-950 text-slate-100 antialiased;
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Subtle "investigation board" texture -- a faint dot grid, used sparingly
+   (Login page backdrop, AppShell sidebar) rather than on every surface. */
+.vigilance-grid {
+  background-image: radial-gradient(circle, rgba(217, 169, 74, 0.16) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* Native <select>/<option> fallback styling -- belt-and-suspenders for any
+   raw <select> we haven't swapped to the custom Select component yet.
+   `color-scheme: dark` is what actually gets Chromium/Edge to render the
+   native popup listbox itself in a dark UI instead of the OS's default
+   white one; the option colors are honored on top of that in Chromium,
+   though the hover/highlight bar inside a *native* popup stays OS-drawn
+   and can't be recolored from CSS in any browser -- that's why the custom
+   Select component (components/ui/Select.tsx) exists for every dropdown
+   that matters visually. */
+.dark select {
+  color-scheme: dark;
+}
+.dark select option {
+  background-color: var(--color-void-900);
+  color: #e2e8f0;
+}
+
+/* Chromium draws the <input type="date"> calendar-picker glyph as a dark
+   icon by default, which disappears against our dark field backgrounds --
+   invert just the icon itself (not the whole input) so it reads as light. */
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.8);
+}
+
+/* HeroBanner illustrations -- a slow, subtle breathing motion so "animated"
+   isn't limited to the chart library. Kept small (4px, 6s) so it reads as
+   ambient life rather than a distracting bounce. */
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+.hero-illustration {
+  animation: hero-float 6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-illustration {
+    animation: none;
+  }
+}

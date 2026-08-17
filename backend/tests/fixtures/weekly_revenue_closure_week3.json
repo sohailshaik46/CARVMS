@@ -1,0 +1,1041 @@
+{
+  "bill_incidents": [
+    {
+      "centre_code": "332-KA-BLR-RRN-C",
+      "centre_name": "RR Nagar, Bengaluru",
+      "zone": "South",
+      "cluster": "Shubham Desai",
+      "incident_date": "2026-07-13",
+      "billed_sessions": 16,
+      "daily_report": 26,
+      "variance": -10,
+      "raw_remark": "10 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP and Insurance bills pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "332-KA-BLR-RRN-C",
+      "centre_name": "RR Nagar, Bengaluru",
+      "zone": "South",
+      "cluster": "Shubham Desai",
+      "incident_date": "2026-07-14",
+      "billed_sessions": 16,
+      "daily_report": 28,
+      "variance": -12,
+      "raw_remark": "12 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP and Insurance bills pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "332-KA-BLR-RRN-C",
+      "centre_name": "RR Nagar, Bengaluru",
+      "zone": "South",
+      "cluster": "Shubham Desai",
+      "incident_date": "2026-07-15",
+      "billed_sessions": 8,
+      "daily_report": 20,
+      "variance": -12,
+      "raw_remark": "12 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP and Insurance bills pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "332-KA-BLR-RRN-C",
+      "centre_name": "RR Nagar, Bengaluru",
+      "zone": "South",
+      "cluster": "Shubham Desai",
+      "incident_date": "2026-07-16",
+      "billed_sessions": 10,
+      "daily_report": 18,
+      "variance": -8,
+      "raw_remark": "8 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP and Insurance bills pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "332-KA-BLR-RRN-C",
+      "centre_name": "RR Nagar, Bengaluru",
+      "zone": "South",
+      "cluster": "Shubham Desai",
+      "incident_date": "2026-07-17",
+      "billed_sessions": 0,
+      "daily_report": 32,
+      "variance": -32,
+      "raw_remark": "32 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP and Insurance bills pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "332-KA-BLR-RRN-C",
+      "centre_name": "RR Nagar, Bengaluru",
+      "zone": "South",
+      "cluster": "Shubham Desai",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 0,
+      "daily_report": 22,
+      "variance": -22,
+      "raw_remark": "22 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP and Insurance bills pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "332-KA-BLR-RRN-C",
+      "centre_name": "RR Nagar, Bengaluru",
+      "zone": "South",
+      "cluster": "Shubham Desai",
+      "incident_date": "2026-07-19",
+      "billed_sessions": 0,
+      "daily_report": 2,
+      "variance": -2,
+      "raw_remark": "2 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP and Insurance bills pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "338-MH-THN-MRR-C",
+      "centre_name": "Mira Road, Thane",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-17",
+      "billed_sessions": 59,
+      "daily_report": 60,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "As soon as I receive details (Bill no and amount) from Hospital Partner i will create pending bills in Babylon.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "338-MH-THN-MRR-C",
+      "centre_name": "Mira Road, Thane",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 54,
+      "daily_report": 57,
+      "variance": -3,
+      "raw_remark": "3 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "As soon as I receive details (Bill no and amount) from Hospital Partner i will create pending bills in Babylon.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "150-MH-ULN-VTW-C",
+      "centre_name": "Vitthalwadi, Maharashtra",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-19",
+      "billed_sessions": 0,
+      "daily_report": 1,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "This is ICU emergency guest which was attend at night.\n\nBy Mistakenly Bill created for wrong date.New staff select wrong date. raised RR for the same . after approve RR we create the bill.",
+      "penalty_remarks": "Considered - Rebilling"
+    },
+    {
+      "centre_code": "64-AP-SRK-TKL-C",
+      "centre_name": "Tekkali, Srikakulam",
+      "zone": "AP",
+      "cluster": "Suresh",
+      "incident_date": "2026-07-14",
+      "billed_sessions": 35,
+      "daily_report": 37,
+      "variance": -2,
+      "raw_remark": "2 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "Two bills for the Tekkali-64 center were automatically nullified on 14-07-2026. These 2 bills purpose RR and mail for these two bills were also raised. Yesterday, back-dated access was given, and billing was redone with the date 22-07-2026. Please find the attachment.",
+      "penalty_remarks": "Considered - Rebilling"
+    },
+    {
+      "centre_code": "370-TS-HYD-BJH-C",
+      "centre_name": "Banjara Hills 2, Hyderabad",
+      "zone": "South",
+      "cluster": "Simhadri Srinivas",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 63,
+      "daily_report": 64,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "Hi sir\n\nthe patient was admitted to the IP department on July 18, 2026.\n\nWe are currently awaiting the final release of the bills from our hospital partner. As soon as the hospital partner releases the bills we will proceed with the billing process accordingly.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "644-BH-NKT-PPP-C",
+      "centre_name": "Narkatiaganj PPP, Bihar",
+      "zone": "Bihar",
+      "cluster": "Mukul Kumar Singh",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 1,
+      "daily_report": null,
+      "variance": 1,
+      "raw_remark": "Daily Report was not sent",
+      "mis_final_remark": "daily_report_not_sent",
+      "center_remarks": "New SDH Centre Centre Incharge not Join ",
+      "penalty_remarks": "Considered - New Center"
+    },
+    {
+      "centre_code": "337-MH-MUM-AGD-C",
+      "centre_name": "Agripada, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-13",
+      "billed_sessions": 32,
+      "daily_report": 40,
+      "variance": -8,
+      "raw_remark": "8 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "My billing is pending due to I have not received IP details (Bill Amount, Bill No.) from hospital partner , as soon as I receive the details I will close billing by taking back dated access.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "337-MH-MUM-AGD-C",
+      "centre_name": "Agripada, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-14",
+      "billed_sessions": 31,
+      "daily_report": 35,
+      "variance": -4,
+      "raw_remark": "4 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "My billing is pending due to I have not received IP details (Bill Amount, Bill No.) from hospital partner , as soon as I receive the details I will close billing by taking back dated access.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "337-MH-MUM-AGD-C",
+      "centre_name": "Agripada, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-15",
+      "billed_sessions": 33,
+      "daily_report": 39,
+      "variance": -6,
+      "raw_remark": "6 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "My billing is pending due to I have not received IP details (Bill Amount, Bill No.) from hospital partner , as soon as I receive the details I will close billing by taking back dated access.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "337-MH-MUM-AGD-C",
+      "centre_name": "Agripada, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-16",
+      "billed_sessions": 23,
+      "daily_report": 27,
+      "variance": -4,
+      "raw_remark": "4 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "My billing is pending due to I have not received IP details (Bill Amount, Bill No.) from hospital partner , as soon as I receive the details I will close billing by taking back dated access.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "337-MH-MUM-AGD-C",
+      "centre_name": "Agripada, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-17",
+      "billed_sessions": 32,
+      "daily_report": 36,
+      "variance": -4,
+      "raw_remark": "4 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "My billing is pending due to I have not received IP details (Bill Amount, Bill No.) from hospital partner , as soon as I receive the details I will close billing by taking back dated access.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "337-MH-MUM-AGD-C",
+      "centre_name": "Agripada, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 32,
+      "daily_report": 38,
+      "variance": -6,
+      "raw_remark": "6 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "My billing is pending due to I have not received IP details (Bill Amount, Bill No.) from hospital partner , as soon as I receive the details I will close billing by taking back dated access.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "337-MH-MUM-AGD-C",
+      "centre_name": "Agripada, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-19",
+      "billed_sessions": 0,
+      "daily_report": 9,
+      "variance": -9,
+      "raw_remark": "9 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "My billing is pending due to I have not received IP details (Bill Amount, Bill No.) from hospital partner , as soon as I receive the details I will close billing by taking back dated access.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "353-RJ-JPR-GPP-C",
+      "centre_name": "Gopal Pura, Jaipur",
+      "zone": "North",
+      "cluster": "Vishal Gogna",
+      "incident_date": "2026-07-16",
+      "billed_sessions": 41,
+      "daily_report": 42,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "Dear Sohail,\n\n \n\nPlease find the reason below for the following pending bills from my center 353:\n\n \n\n16/7/26 - 1 bill pending (Guest name- Ghanshyam Mangal)\n\n \n\nThe price for the session was new price generated from the hospital side, rate plan generation was pending\n\n \n\n18/7/26- 2 Bill pending (Guest name- Uma Shanker Saxena & Shyam Sunder Sharma)\n\nGuest Uma Shanker is admitted in critical care unit and session was done at midnight, hospital bill copy was not provided to us till monday.\n\nGuest Shyam Sunder Sharma bill was done but RR was raised for cancellation due to wrong bill entry, as 2 OP bills cannot be billed in same date, I had to wait till the bill was cancelled.\n\n \n\nPlease note additionally, Since 20/7/26, all my rate plans was showing blood line stock out for my center, the stock has been added yesterday, which caused additional delay in closing the pending bills. Please find screenshot of blood line stock added yesterday which caused to additional delay.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "353-RJ-JPR-GPP-C",
+      "centre_name": "Gopal Pura, Jaipur",
+      "zone": "North",
+      "cluster": "Vishal Gogna",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 43,
+      "daily_report": 45,
+      "variance": -2,
+      "raw_remark": "2 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "Dear Sohail,\n\n \n\nPlease find the reason below for the following pending bills from my center 353:\n\n \n\n16/7/26 - 1 bill pending (Guest name- Ghanshyam Mangal)\n\n \n\nThe price for the session was new price generated from the hospital side, rate plan generation was pending\n\n \n\n18/7/26- 2 Bill pending (Guest name- Uma Shanker Saxena & Shyam Sunder Sharma)\n\nGuest Uma Shanker is admitted in critical care unit and session was done at midnight, hospital bill copy was not provided to us till monday.\n\nGuest Shyam Sunder Sharma bill was done but RR was raised for cancellation due to wrong bill entry, as 2 OP bills cannot be billed in same date, I had to wait till the bill was cancelled.\n\n \n\nPlease note additionally, Since 20/7/26, all my rate plans was showing blood line stock out for my center, the stock has been added yesterday, which caused additional delay in closing the pending bills. Please find screenshot of blood line stock added yesterday which caused to additional delay.",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "301-DL-GTK-CGE-C",
+      "centre_name": "Chirag Enclave, Delhi",
+      "zone": "North",
+      "cluster": "Vishal Gogna",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 10,
+      "daily_report": 11,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "The bill was pending due to TPA approval. It has now been closed. I would like to apologize for this.\n",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "82-MH-MUM-KDW-C",
+      "centre_name": "Kandivali West, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-13",
+      "billed_sessions": 38,
+      "daily_report": 40,
+      "variance": -2,
+      "raw_remark": "2 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP bills are pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "82-MH-MUM-KDW-C",
+      "centre_name": "Kandivali West, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-14",
+      "billed_sessions": 34,
+      "daily_report": 35,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP bills are pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "82-MH-MUM-KDW-C",
+      "centre_name": "Kandivali West, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-15",
+      "billed_sessions": 37,
+      "daily_report": 38,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP bills are pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "82-MH-MUM-KDW-C",
+      "centre_name": "Kandivali West, Mumbai",
+      "zone": "West",
+      "cluster": "Akshay Mahadev Kandre",
+      "incident_date": "2026-07-16",
+      "billed_sessions": 35,
+      "daily_report": 36,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "IP bills are pending from HP",
+      "penalty_remarks": "Considered - HP Billing"
+    },
+    {
+      "centre_code": "DOC10-TN-CMB-DOC-S",
+      "centre_name": "Dialysis on call, Coimbatore",
+      "zone": "South",
+      "cluster": "Vishnu Rajeev",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 0,
+      "daily_report": 2,
+      "variance": -2,
+      "raw_remark": "2 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "DOC 10 bill was pending due to rate plan not being approved. Rate plan was approved only today and we have now closed the bill. PFA, email thread where we raised the request on 17th july and sent reminder on 20th. ( monday )\n\nRegarding daily reports, all daily reports were updated on time. I have attached the screenshot below which has been received from IT team. Two daily reports were entered incorrectly, which was updated on 22nd. However, initially all reports closed on time. ",
+      "penalty_remarks": "Considered - Proof Available"
+    },
+    {
+      "centre_code": "DOC10-TN-CMB-DOC-S",
+      "centre_name": "Dialysis on call, Coimbatore",
+      "zone": "South",
+      "cluster": "Vishnu Rajeev",
+      "incident_date": "2026-07-19",
+      "billed_sessions": 2,
+      "daily_report": null,
+      "variance": 2,
+      "raw_remark": "Daily Report was not sent",
+      "mis_final_remark": "daily_report_not_sent",
+      "center_remarks": "DOC 10 bill was pending due to rate plan not being approved. Rate plan was approved only today and we have now closed the bill. PFA, email thread where we raised the request on 17th july and sent reminder on 20th. ( monday )\n\nRegarding daily reports, all daily reports were updated on time. I have attached the screenshot below which has been received from IT team. Two daily reports were entered incorrectly, which was updated on 22nd. However, initially all reports closed on time. ",
+      "penalty_remarks": "Considered - Proof Available"
+    },
+    {
+      "centre_code": "310-MH-NGP-WDR-C",
+      "centre_name": "Wardha Road, Nagpur",
+      "zone": "West",
+      "cluster": "Harsh Jain",
+      "incident_date": "2026-07-14",
+      "billed_sessions": 23,
+      "daily_report": 24,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "The two bills were pending for 310 center because the required service addition under the SECR rate plan was not available.\n\n \n\nAn email ( Subject line :- Addition of Service under SECR rate plan) was sent on 17th requesting the addition of Dialyser B-14PF under the SECR rate plan. Although the service was added, while generating the bills it was observed that the corresponding stock was not availableas shown in the email. The issue was then updated, and we were advised to coordinate with the SCM team.\n\n \n\nAfter discussing this with Mr. Isthiyak Khan from the SCM team, he advised us to proceed with billing under Dialyser 14PF. Accordingly, another email was sent requesting the necessary service update.",
+      "penalty_remarks": "Considered - Proof Available"
+    },
+    {
+      "centre_code": "310-MH-NGP-WDR-C",
+      "centre_name": "Wardha Road, Nagpur",
+      "zone": "West",
+      "cluster": "Harsh Jain",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 25,
+      "daily_report": 26,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "The two bills were pending for 310 center because the required service addition under the SECR rate plan was not available.\n\n \n\nAn email ( Subject line :- Addition of Service under SECR rate plan) was sent on 17th requesting the addition of Dialyser B-14PF under the SECR rate plan. Although the service was added, while generating the bills it was observed that the corresponding stock was not availableas shown in the email. The issue was then updated, and we were advised to coordinate with the SCM team.\n\n \n\nAfter discussing this with Mr. Isthiyak Khan from the SCM team, he advised us to proceed with billing under Dialyser 14PF. Accordingly, another email was sent requesting the necessary service update.",
+      "penalty_remarks": "Considered - Proof Available"
+    },
+    {
+      "centre_code": "348-MH-NGP-WDG-C",
+      "centre_name": "Wanadongari, Nagpur",
+      "zone": "West",
+      "cluster": "Harsh Jain",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 24,
+      "daily_report": 25,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "Please find attached the clarification received from SMHRC regarding the pending bill of Mr. Deepak Raut dated 18th.\n\n \n\nThe bill was delayed due to the generation of two UHIDs, and the patient was mistakenly discharged by the Emergency Department under the incorrect UHID.\n\n \n\nAs a result, the bill could not be generated on time.\n\n \n\nThe issue has now been resolved, and the bill was generated yesterday.\n\n \n\nKindly consider this as a genuine system-related issue and request you to waive the applicable penalty.",
+      "penalty_remarks": "Considered - Proof Available"
+    },
+    {
+      "centre_code": "579-GJ-MDS-GSY-C",
+      "centre_name": "Gitanjali Society, Modasa",
+      "zone": "Green field",
+      "cluster": "Haider Ali",
+      "incident_date": "2026-07-15",
+      "billed_sessions": 1,
+      "daily_report": 3,
+      "variance": -2,
+      "raw_remark": "2 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "Regarding center code 579, four bills were cancelled and the billing has now been closed.",
+      "penalty_remarks": "Considered - Rebilling"
+    },
+    {
+      "centre_code": "579-GJ-MDS-GSY-C",
+      "centre_name": "Gitanjali Society, Modasa",
+      "zone": "Green field",
+      "cluster": "Haider Ali",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 3,
+      "daily_report": 4,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "Regarding center code 579, four bills were cancelled and the billing has now been closed.",
+      "penalty_remarks": "Considered - Rebilling"
+    },
+    {
+      "centre_code": "279-BH-BGS-PPP-C",
+      "centre_name": "Begusarai PPP, Bihar",
+      "zone": "Bihar",
+      "cluster": "Gaurav Kumar Chaudhary",
+      "incident_date": "2026-07-14",
+      "billed_sessions": 18,
+      "daily_report": 19,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "The center was unable to complete billing due to a Babylon technical issue. The matter was reported through email at the time, and the issue prevented the team from generating bills despite their efforts.",
+      "penalty_remarks": "Considered - Proof Available"
+    },
+    {
+      "centre_code": "280-BH-KGG-PPP-C",
+      "centre_name": "Khagaria PPP, Bihar",
+      "zone": "Bihar",
+      "cluster": "Gaurav Kumar Chaudhary",
+      "incident_date": "2026-07-16",
+      "billed_sessions": 24,
+      "daily_report": 25,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "The center was unable to complete billing because the guest was transferred from Hcv-Negative to Hcv-Positive, which resulted in a system issue that prevented billing. This issue was also communicated via email.\n\nFor your reference, I have attached screenshots/copies of the previous email communications regarding both issues.\n\nSince the billing delays occurred due to documented technical and system-related constraints, I kindly request you to review these cases and remove the applicable penalties for Begusarai and Khagaria centers.\n\nPlease let me know if any additional information or supporting documents are required from our end.",
+      "penalty_remarks": "Considered - Proof Available"
+    },
+    {
+      "centre_code": "116-UK-HLD-PPP-C",
+      "centre_name": "Haldwani PPP, UK",
+      "zone": "North",
+      "cluster": "Shakti Mehrotra",
+      "incident_date": "2026-07-14",
+      "billed_sessions": 66,
+      "daily_report": 67,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "13th of July 2026, one bills shwoing in bill list is nullified, but revenue report showing in still finalised, screen short is bellow:\n",
+      "penalty_remarks": "Considered - Proof Available"
+    },
+    {
+      "centre_code": "616-PB-BTI-GNR-C",
+      "centre_name": "Ganesh Nagar, Bathinda",
+      "zone": "Green field",
+      "cluster": "Ankit Kumar Sharma",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 6,
+      "daily_report": 7,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "Regarding center 616, the billing was delayed because the F4 dialyzer rate plan approval was pending. The center had requested the additional discounted rate plan, but it was not approved at that time. Once the approval was received, the center completed the billing.",
+      "penalty_remarks": "Considered - Proof Available"
+    },
+    {
+      "centre_code": "194-TN-CHE-KKS-C",
+      "centre_name": "Kaliamman Koil Street, Chennai",
+      "zone": "South",
+      "cluster": "Mohamed Naveedh",
+      "incident_date": "2026-07-14",
+      "billed_sessions": 13,
+      "daily_report": 15,
+      "variance": -2,
+      "raw_remark": "2 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "Our KKS-194 center had two bills dated 14-07-2026 that were automatically nullified due to a system error. The reason shown was Cash Bill, but our center has access only for Credit Bills. Therefore, this appears to be a system issue.\n\nMs. Usha Challori and the MIS team have already replied to the email with all the required details, including the bill numbers and bill date. Mr. Satishraja also responded to my email and advised me to raise an RR. Accordingly, I have raised an RR in the Babylon system.\n\nI am currently waiting for back-date access to recreate the two bills dated 14-07-2026.\nKindly provide the required back-date access at the earliest. I have attached the reference documents for your review.",
+      "penalty_remarks": "Considered - Rebilling"
+    },
+    {
+      "centre_code": "180-MH-PUN-SSR-C",
+      "centre_name": "Sassoon Road, Pune",
+      "zone": "West",
+      "cluster": "Vaibhav Gaikwad",
+      "incident_date": "2026-07-19",
+      "billed_sessions": 34,
+      "daily_report": 35,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "due to a BO issue, one bill was not generated. I have now cleared that bill.\n",
+      "penalty_remarks": "Not considered - No Further Reply"
+    },
+    {
+      "centre_code": "288-BH-NWD-PPP-C",
+      "centre_name": "Nawada PPP, Bihar",
+      "zone": "Bihar",
+      "cluster": "Abhishek Kumar Rai",
+      "incident_date": "2026-07-13",
+      "billed_sessions": 15,
+      "daily_report": 20,
+      "variance": -5,
+      "raw_remark": "5 Bills Pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "There not a single bill pending from 288 and 250 center.",
+      "penalty_remarks": "Considered - Proof Available"
+    },
+    {
+      "centre_code": "250-BH-BHS-PPP-C",
+      "centre_name": "Bihar Sharif PPP, Bihar",
+      "zone": "Bihar",
+      "cluster": "Abhishek Kumar Rai",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 22,
+      "daily_report": 23,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "There not a single bill pending from 288 and 250 center.",
+      "penalty_remarks": "Not considered - No Further Reply"
+    },
+    {
+      "centre_code": "301-DL-GTK-CGE-C",
+      "centre_name": "Chirag Enclave, Delhi",
+      "zone": "North",
+      "cluster": "Vishal Gogna",
+      "incident_date": "2026-07-18",
+      "billed_sessions": 10,
+      "daily_report": 11,
+      "variance": -1,
+      "raw_remark": " 1 Bill pending",
+      "mis_final_remark": "bill_pending",
+      "center_remarks": "The bill was pending due to TPA approval. It has now been closed.\n",
+      "penalty_remarks": "Considered - HP Billing"
+    }
+  ],
+  "no_remark_incidents": [
+    {
+      "centre_code": "104-AP-PVP-PPP-C",
+      "centre_name": "Parvathipuram PPP, AP",
+      "zone": "AP",
+      "cluster": "Suresh",
+      "zonal_manager": "Aravind Chunduru",
+      "center_manager": "Mandala Kiran Kumar",
+      "center_manager_npid": "NP34717",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "106-BH-PTN-KHM-C",
+      "centre_name": "Khemnichak, Patna",
+      "zone": "Bihar",
+      "cluster": "Santosh Kumar",
+      "zonal_manager": "Nishant Kumar Singh",
+      "center_manager": "Mukul Kumar",
+      "center_manager_npid": "NP38621",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "213-GJ-VDD-WGD-C",
+      "centre_name": "Waghodia, Vadodara",
+      "zone": "West",
+      "cluster": "Yashwant",
+      "zonal_manager": "Krunal",
+      "center_manager": "Shital Sunil Salunke",
+      "center_manager_npid": "NP38456",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "213-GJ-VDD-WGD-C",
+      "centre_name": "Waghodia, Vadodara",
+      "zone": "West",
+      "cluster": "Yashwant",
+      "zonal_manager": "Krunal",
+      "center_manager": "Shital Sunil Salunke",
+      "center_manager_npid": "NP38456",
+      "incident_type": "daily_report_not_sent",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "233-TN-CHE-TVS-C",
+      "centre_name": "TVS Nagar, Chennai",
+      "zone": "South",
+      "cluster": "Mohamed Naveedh",
+      "zonal_manager": "Juturu Rajesh Kumar Reddy",
+      "center_manager": "Mohammed Abbas M",
+      "center_manager_npid": "NP35540",
+      "incident_type": "daily_report_not_sent",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "26-UP-LCK-ALB-C",
+      "centre_name": "Ajanta Hospital, Lucknow",
+      "zone": "Bihar",
+      "cluster": "Ankit Kumar Singh",
+      "zonal_manager": "Nishant Kumar Singh",
+      "center_manager": "Himanshu Yadav",
+      "center_manager_npid": "NP37888",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "327-MH-PUN-WKD-C",
+      "centre_name": "Wakad, Pune",
+      "zone": "West",
+      "cluster": "Vaibhav Gaikwad",
+      "zonal_manager": "Krunal",
+      "center_manager": "Thorvi Kishor Gadkari",
+      "center_manager_npid": "NP36887",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "394-PY-SBD-AAS-C",
+      "centre_name": "Anna Salai, Puducherry",
+      "zone": "South",
+      "cluster": "Mohamed Naveedh",
+      "zonal_manager": "Juturu Rajesh Kumar Reddy",
+      "center_manager": "Vinoth S",
+      "center_manager_npid": "NP33444",
+      "incident_type": "daily_report_not_sent",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "401-KA-KRP-PPP-C",
+      "centre_name": "Krishnarajapura PPP, Karnataka",
+      "zone": "KA PPP",
+      "cluster": "Joyes George",
+      "zonal_manager": "Sudhakar V",
+      "center_manager": "Shwetha",
+      "center_manager_npid": "NP35684",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "512-UP-GKP-PPP-C",
+      "centre_name": "Kunraghat PPP, Gorakhpur",
+      "zone": "Bihar",
+      "cluster": "Ankit Kumar Singh",
+      "zonal_manager": "Nishant Kumar Singh",
+      "center_manager": "Abhishek Kumar",
+      "center_manager_npid": "NP38240",
+      "incident_type": "daily_report_not_sent",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "515-NL-BGR-GDK-C",
+      "centre_name": "Gandak Chowk, Birgunj",
+      "zone": "Nepal",
+      "cluster": "Dharmesh Kumar",
+      "zonal_manager": "Nishant Kumar Singh",
+      "center_manager": "Kundan Prajapati",
+      "center_manager_npid": "NP30396",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "550-UP-BST-AVC-C",
+      "centre_name": "Awas Vikas Colony, Basti",
+      "zone": "Bihar",
+      "cluster": "Ankit Kumar Singh",
+      "zonal_manager": "Nishant Kumar Singh",
+      "center_manager": "Om Chaturvedi",
+      "center_manager_npid": "NP37244",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "550-UP-BST-AVC-C",
+      "centre_name": "Awas Vikas Colony, Basti",
+      "zone": "Bihar",
+      "cluster": "Ankit Kumar Singh",
+      "zonal_manager": "Nishant Kumar Singh",
+      "center_manager": "Om Chaturvedi",
+      "center_manager_npid": "NP37244",
+      "incident_type": "daily_report_not_sent",
+      "incident_count": 4
+    },
+    {
+      "centre_code": "551-UP-LCK-KMT-C",
+      "centre_name": "Kamta, Lucknow",
+      "zone": "Bihar",
+      "cluster": "Ankit Kumar Singh",
+      "zonal_manager": "Nishant Kumar Singh",
+      "center_manager": "Saurabh Pandey",
+      "center_manager_npid": "NP36198",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "589-TS-BDC-BRC-C",
+      "centre_name": "Bhupathi Rao Colony, Bhadrachalam",
+      "zone": "Green field",
+      "cluster": "Neel Patel",
+      "zonal_manager": "Gaurav Malhotra",
+      "center_manager": "Vallapudasu Gopinath",
+      "center_manager_npid": "NP37191",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "642-BH-ARR-PPP-C",
+      "centre_name": "Areraj PPP, Bihar",
+      "zone": "Bihar",
+      "cluster": "Al Latiful Hassan",
+      "zonal_manager": "Nishant Kumar Singh",
+      "center_manager": "Abhishek Kumar Pandey",
+      "center_manager_npid": "NP27539",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "647-GJ-VDD-CHN-C",
+      "centre_name": "Chhani, Vadodara",
+      "zone": "West",
+      "cluster": "Yashwant",
+      "zonal_manager": "Krunal",
+      "center_manager": "Shital Sunil Salunke",
+      "center_manager_npid": "NP38456",
+      "incident_type": "daily_report_not_sent",
+      "incident_count": 3
+    },
+    {
+      "centre_code": "647-GJ-VDD-CHN-C",
+      "centre_name": "Chhani, Vadodara",
+      "zone": "West",
+      "cluster": "Yashwant",
+      "zonal_manager": "Krunal",
+      "center_manager": "Shital Sunil Salunke",
+      "center_manager_npid": "NP38456",
+      "incident_type": "no_billing_no_daily_report",
+      "incident_count": 3
+    },
+    {
+      "centre_code": "649-KA-CBT-PPP-C",
+      "centre_name": "Cubbonpete PPP, Bangalore",
+      "zone": "KA PPP",
+      "cluster": "Joyes George",
+      "zonal_manager": "Sudhakar V",
+      "center_manager": "Amaya V K",
+      "center_manager_npid": "NP37000",
+      "incident_type": "bill_pending",
+      "incident_count": 1
+    },
+    {
+      "centre_code": "DOC15-GJ-AHM-DOC-S",
+      "centre_name": "Dialysis on call, Ahmedabad",
+      "zone": "West",
+      "cluster": "Arbaj",
+      "zonal_manager": "Krunal",
+      "center_manager": "Ashvini Kailas Deore",
+      "center_manager_npid": "NP37175",
+      "incident_type": "no_billing_no_daily_report",
+      "incident_count": 1
+    }
+  ],
+  "expected_center_penalties": {
+    "515-NL-BGR-GDK-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "327-MH-PUN-WKD-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "213-GJ-VDD-WGD-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "647-GJ-VDD-CHN-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "550-UP-BST-AVC-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "394-PY-SBD-AAS-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "551-UP-LCK-KMT-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "642-BH-ARR-PPP-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "649-KA-CBT-PPP-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "233-TN-CHE-TVS-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "DOC15-GJ-AHM-DOC-S": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "589-TS-BDC-BRC-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "180-MH-PUN-SSR-C": {
+      "not_considered_penalty": 0.0625,
+      "no_remark_penalty": 0.0
+    },
+    "104-AP-PVP-PPP-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "401-KA-KRP-PPP-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "512-UP-GKP-PPP-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "106-BH-PTN-KHM-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    },
+    "250-BH-BHS-PPP-C": {
+      "not_considered_penalty": 0.0625,
+      "no_remark_penalty": 0.0
+    },
+    "26-UP-LCK-ALB-C": {
+      "not_considered_penalty": 0.0,
+      "no_remark_penalty": 0.0625
+    }
+  },
+  "expected_role_penalties": [
+    {
+      "role": "cluster_manager",
+      "section": "not_considered",
+      "person_name": "Vaibhav Gaikwad",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    },
+    {
+      "role": "cluster_manager",
+      "section": "not_considered",
+      "person_name": "Abhishek Kumar Rai",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Suresh",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Santosh Kumar",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Yashwant",
+      "distinct_center_count": 2,
+      "penalty_amount": 0.125
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Mohamed Naveedh",
+      "distinct_center_count": 2,
+      "penalty_amount": 0.125
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Ankit Kumar Singh",
+      "distinct_center_count": 4,
+      "penalty_amount": 0.25
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Vaibhav Gaikwad",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Joyes George",
+      "distinct_center_count": 2,
+      "penalty_amount": 0.125
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Dharmesh Kumar",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Neel Patel",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Al Latiful Hassan",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    },
+    {
+      "role": "cluster_manager",
+      "section": "no_remark",
+      "person_name": "Arbaj",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    },
+    {
+      "role": "zonal_manager",
+      "section": "no_remark",
+      "person_name": "Aravind Chunduru",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    },
+    {
+      "role": "zonal_manager",
+      "section": "no_remark",
+      "person_name": "Nishant Kumar Singh",
+      "distinct_center_count": 7,
+      "penalty_amount": 0.4375
+    },
+    {
+      "role": "zonal_manager",
+      "section": "no_remark",
+      "person_name": "Krunal",
+      "distinct_center_count": 4,
+      "penalty_amount": 0.25
+    },
+    {
+      "role": "zonal_manager",
+      "section": "no_remark",
+      "person_name": "Juturu Rajesh Kumar Reddy",
+      "distinct_center_count": 2,
+      "penalty_amount": 0.125
+    },
+    {
+      "role": "zonal_manager",
+      "section": "no_remark",
+      "person_name": "Sudhakar V",
+      "distinct_center_count": 2,
+      "penalty_amount": 0.125
+    },
+    {
+      "role": "zonal_manager",
+      "section": "no_remark",
+      "person_name": "Gaurav Malhotra",
+      "distinct_center_count": 1,
+      "penalty_amount": 0.0625
+    }
+  ]
+}
