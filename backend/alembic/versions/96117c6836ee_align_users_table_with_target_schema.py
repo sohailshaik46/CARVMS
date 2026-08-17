@@ -45,11 +45,22 @@ def upgrade() -> None:
         )
         batch_op.add_column(sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False))
         batch_op.add_column(sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False))
+        # Drop the old 'Yes'/VARCHAR default FIRST, as its own statement --
+        # Postgres tries to auto-cast a column's *existing* default to the
+        # new type as part of ALTER COLUMN TYPE, separately from the row
+        # data (which the USING clause below handles); it has no varchar
+        # -> boolean cast for that and errors with "default for column
+        # ... cannot be cast automatically to type boolean" if the old
+        # default is still attached when the type change runs.
+        batch_op.alter_column(
+            'is_active',
+            existing_type=sa.VARCHAR(),
+            server_default=None,
+        )
         batch_op.alter_column(
             'is_active',
             existing_type=sa.VARCHAR(),
             type_=sa.Boolean(),
-            existing_server_default=None,
             server_default=sa.true(),
             nullable=False,
             # Postgres won't implicitly cast varchar -> boolean on a plain
