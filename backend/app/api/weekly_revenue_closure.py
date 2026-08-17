@@ -28,6 +28,7 @@ from app.schemas.weekly_revenue_closure import (
     BillReviewIn,
     CaseResponseOut,
     CenterActivityOut,
+    CenterBreakdownOut,
     CenterPenaltyOut,
     CloseBatchResultOut,
     IncidentNotifyIn,
@@ -152,6 +153,19 @@ def get_batch_summary(
     batch = _get_batch_or_404(db, batch_id)
     summary = calc_service.get_batch_summary(db, batch=batch)
     return BatchSummaryOut(batch=WeeklyRevenueClosureBatchOut.model_validate(batch), **summary.__dict__)
+
+
+@router.get("/batches/{batch_id}/centers-breakdown", response_model=list[CenterBreakdownOut])
+def get_batch_centers_breakdown(
+    batch_id: int, db: Session = Depends(get_db), _user: User = Depends(require_role(*VIGILANCE_ROLES))
+):
+    """Every center with an incident in this batch, with zone/cluster (read
+    straight off the incident rows) plus all-time repeat-non-compliance and
+    considered/not-considered history -- see
+    weekly_revenue_closure_service.get_batch_centers_breakdown."""
+    batch = _get_batch_or_404(db, batch_id)
+    breakdown = calc_service.get_batch_centers_breakdown(db, batch=batch)
+    return [CenterBreakdownOut(**b.__dict__) for b in breakdown]
 
 
 @router.post("/batches/upload", response_model=UploadBatchResultOut, status_code=201)
@@ -410,6 +424,20 @@ def get_case_responses(
 ):
     case = _get_case_or_404(db, case_id)
     return response_service.list_responses(db, case=case)
+
+
+@router.get("/cases/{case_id}/incidents", response_model=list[BillIncidentOut])
+def get_case_incidents(
+    case_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_role(*VIGILANCE_ROLES)),
+):
+    """Every incident tied to this case (batch_id + centre_code), reviewed
+    or not -- backs the Auto Validation tab's "open the relevant incidents
+    to reverify" click-through, since there's no direct FK from a case to
+    its incidents (same batch_id+centre_code join as everywhere else)."""
+    case = _get_case_or_404(db, case_id)
+    return response_service.list_incidents_for_case(db, case=case)
 
 
 @router.get("/case-responses/{response_id}/evidence")

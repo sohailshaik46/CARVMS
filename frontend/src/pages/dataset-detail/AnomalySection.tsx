@@ -57,7 +57,7 @@ export function AnomalySection({ datasetId, columns }: { datasetId: number; colu
       {error && <ErrorBanner message={error} />}
 
       <div className="rounded border border-dashed border-slate-700 p-3">
-        <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Run a forensic scan</p>
+        <p className="mb-2 text-xs font-semibold uppercase text-slate-400">Run a forensic scan</p>
         <div className="flex flex-wrap gap-4">
           {ANOMALY_RULE_CODES.map((rule) => (
             <label key={rule} className="flex items-center gap-1.5 text-sm">
@@ -117,7 +117,7 @@ export function AnomalySection({ datasetId, columns }: { datasetId: number; colu
       {anomalies && anomalies.length > 0 && (
         <ul className="space-y-2">
           {anomalies.map((a) => (
-            <li key={a.id} className="rounded border border-slate-800 bg-slate-900 p-3 text-sm">
+            <li key={a.id} className="rounded border border-slate-700 bg-slate-900 p-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{a.entity_description}</span>
                 <div className="flex items-center gap-2">
@@ -125,7 +125,7 @@ export function AnomalySection({ datasetId, columns }: { datasetId: number; colu
                   <Badge tone="status">{a.status}</Badge>
                 </div>
               </div>
-              <p className="mt-1 text-xs text-slate-500">{a.recommended_verification}</p>
+              <p className="mt-1 text-xs text-slate-400">{a.recommended_verification}</p>
               {a.status === 'Open' && (
                 <div className="mt-2 flex gap-2">
                   <Button variant="ghost" onClick={() => setDismissingAnomaly(a)}>
@@ -134,7 +134,7 @@ export function AnomalySection({ datasetId, columns }: { datasetId: number; colu
                 </div>
               )}
               {a.status === 'Dismissed' && a.dismissed_reason && (
-                <p className="mt-1 text-xs italic text-slate-500">Dismissed: {a.dismissed_reason}</p>
+                <p className="mt-1 text-xs italic text-slate-400">Dismissed: {a.dismissed_reason}</p>
               )}
             </li>
           ))}
@@ -169,7 +169,7 @@ function DismissModal({
   return (
     <Modal title="Dismiss Anomaly" onClose={onClose}>
       <div className="space-y-4">
-        <p className="text-sm text-slate-500">{anomaly.entity_description}</p>
+        <p className="text-sm text-slate-400">{anomaly.entity_description}</p>
         <TextAreaField
           id="dismiss-reason"
           label="Reason for dismissing"

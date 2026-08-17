@@ -47,7 +47,7 @@ export function ReconciliationSection({ datasetId }: { datasetId: number }) {
       {error && <ErrorBanner message={error} />}
 
       <div className="rounded border border-dashed border-slate-700 p-3">
-        <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Reconcile against another dataset</p>
+        <p className="mb-2 text-xs font-semibold uppercase text-slate-400">Reconcile against another dataset</p>
         <div className="flex flex-wrap items-end gap-2">
           <SelectField
             id="dataset-b"
@@ -82,17 +82,17 @@ export function ReconciliationSection({ datasetId }: { datasetId: number }) {
       {lastResult && <ReconciliationResult result={lastResult} />}
 
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase text-slate-500">History</p>
+        <p className="mb-2 text-xs font-semibold uppercase text-slate-400">History</p>
         {history && history.length === 0 && <EmptyState title="No reconciliations run yet" />}
         {history && history.length > 0 && (
           <ul className="space-y-1 text-sm">
             {history.map((r) => (
-              <li key={r.id} className="flex items-center justify-between rounded border border-slate-800 px-2 py-1">
+              <li key={r.id} className="flex items-center justify-between rounded border border-slate-700 px-2 py-1">
                 <span>
                   vs dataset #{r.dataset_a_id === datasetId ? r.dataset_b_id : r.dataset_a_id} — {r.status}
                 </span>
                 {r.status === 'completed' && (
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-slate-400">
                     {r.matched_count} matched / {r.mismatched_count} mismatched / {r.missing_in_b_count} missing /{' '}
                     {r.extra_in_b_count} extra
                   </span>
@@ -112,7 +112,7 @@ function ReconciliationResult({ result }: { result: ReconciliationDetail }) {
   }
   const details = result.details_json
   return (
-    <div className="rounded border border-slate-800 bg-slate-900 p-3 text-sm">
+    <div className="rounded border border-slate-700 bg-slate-900 p-3 text-sm">
       <div className="grid grid-cols-4 gap-2 text-center">
         <Stat label="Matched" value={result.matched_count} tone="text-green-600" />
         <Stat label="Mismatched" value={result.mismatched_count} tone="text-orange-600" />
@@ -121,7 +121,7 @@ function ReconciliationResult({ result }: { result: ReconciliationDetail }) {
       </div>
       {details && details.mismatched_examples.length > 0 && (
         <div className="mt-3">
-          <p className="text-xs font-semibold text-slate-500">Mismatch examples</p>
+          <p className="text-xs font-semibold text-slate-400">Mismatch examples</p>
           <ul className="mt-1 space-y-1">
             {details.mismatched_examples.slice(0, 5).map((ex) => (
               <li key={ex.key} className="text-xs">
@@ -133,7 +133,7 @@ function ReconciliationResult({ result }: { result: ReconciliationDetail }) {
             ))}
           </ul>
           {details.mismatched_examples_truncated && (
-            <p className="mt-1 text-xs italic text-slate-500">More mismatches exist than shown here.</p>
+            <p className="mt-1 text-xs italic text-slate-400">More mismatches exist than shown here.</p>
           )}
         </div>
       )}
@@ -145,7 +145,7 @@ function Stat({ label, value, tone }: { label: string; value: number | null; ton
   return (
     <div>
       <p className={`text-lg font-semibold ${tone}`}>{value ?? '—'}</p>
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-xs text-slate-400">{label}</p>
     </div>
   )
 }

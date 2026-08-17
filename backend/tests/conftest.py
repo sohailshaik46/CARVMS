@@ -39,12 +39,14 @@ def _fresh_test_db():
     since create_all doesn't run migration data steps."""
     from app.services.org_service import seed_default_dimensions_if_missing
     from app.services.center_scoring_service import seed_default_weights_if_missing
+    from app.services.auto_validation_service import seed_default_rules_if_missing
 
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
         seed_default_dimensions_if_missing(db)
         seed_default_weights_if_missing(db)
+        seed_default_rules_if_missing(db)
     finally:
         db.close()
     yield

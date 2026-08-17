@@ -19,6 +19,12 @@ class OrgNodeNotFoundError(Exception):
     pass
 
 
+class WrongPasswordError(Exception):
+    """Current password didn't match -- self-service change refuses to
+    proceed. Message is deliberately generic (no hint about *why* it's
+    wrong) to avoid leaking anything about the stored hash."""
+
+
 def _user_snapshot(user: User) -> dict:
     return {"role": user.role, "is_active": user.is_active, "org_node_id": user.org_node_id}
 
@@ -35,6 +41,7 @@ def create_user(db: Session, user: UserRegister) -> User | None:
         username=user.username,
         email=user.email,
         password_hash=hash_password(user.password),
+        phone_number=user.phone_number,
         role=DEFAULT_SELF_REGISTER_ROLE,  # never trust a client-supplied role
     )
 
@@ -119,6 +126,70 @@ def assign_org_node(db: Session, *, target: User, org_node_id: Optional[int], ac
         entity_id=target.id,
         before=before,
         after=_user_snapshot(target),
+    )
+    db.commit()
+    db.refresh(target)
+    return target
+
+
+def change_own_password(db: Session, *, user: User, current_password: str, new_password: str) -> User:
+    """Self-service only -- requires the CURRENT password, unlike an
+    admin-driven reset. Logged without either password value, obviously."""
+    if not verify_password(current_password, user.password_hash):
+        raise WrongPasswordError("Current password is incorrect")
+
+    user.password_hash = hash_password(new_password)
+    db.flush()
+
+    audit_log_service.record(
+        db,
+        actor=user,
+        action="user.password_changed",
+        entity_type="User",
+        entity_id=user.id,
+        before=None,
+        after=None,
+    )
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_own_phone_number(db: Session, *, user: User, phone_number: str) -> User:
+    before = {"phone_number": user.phone_number}
+    user.phone_number = phone_number
+    db.flush()
+
+    audit_log_service.record(
+        db,
+        actor=user,
+        action="user.phone_number_changed",
+        entity_type="User",
+        entity_id=user.id,
+        before=before,
+        after={"phone_number": phone_number},
+    )
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_user_phone_number(db: Session, *, target: User, phone_number: str, actor: User) -> User:
+    """Admin-driven -- sets or fixes another user's number (e.g. onboarding
+    a new account, or correcting a typo the user can't self-serve because
+    they're locked out)."""
+    before = {"phone_number": target.phone_number}
+    target.phone_number = phone_number
+    db.flush()
+
+    audit_log_service.record(
+        db,
+        actor=actor,
+        action="user.phone_number_changed",
+        entity_type="User",
+        entity_id=target.id,
+        before=before,
+        after={"phone_number": phone_number},
     )
     db.commit()
     db.refresh(target)

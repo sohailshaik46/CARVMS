@@ -41,6 +41,7 @@ from app.models.delayed_cash_billing import (
     DelayedCashUploadBatch,
 )
 from app.models.user import User
+from app.services import org_service
 from app.services import storage_service
 
 
@@ -362,6 +363,116 @@ def list_bills_for_center_penalty(db: Session, *, center_penalty: DelayedCashCen
         .order_by(DelayedCashBill.sales_bill)
         .all()
     )
+
+
+@dataclass
+class DcbBatchSummary:
+    """KPI-style aggregate for one batch -- mirrors
+    weekly_revenue_closure_service.BatchSummary's role for WRC, adapted to
+    DCB's own decision model (no Cluster/Zonal Manager escalation here;
+    needs_more_detail/needs_proof are DCB-specific follow-up states WRC
+    doesn't have). Deliberately no zone/cluster breakdown yet -- DCB bills
+    carry only centre_code, and the Org Master doesn't yet have a real
+    zone/cluster hierarchy populated for these centers (see
+    docs -- pending a Center Master import)."""
+
+    total_bills: int
+    pending_review_count: int
+    considered_count: int
+    not_considered_count: int
+    needs_more_detail_count: int
+    needs_proof_count: int
+    centers_in_batch: int
+    total_calculated_penalty: Decimal
+    total_validated_penalty: Decimal
+
+
+def get_batch_summary(db: Session, *, batch: DelayedCashUploadBatch) -> DcbBatchSummary:
+    bills = db.query(DelayedCashBill).filter(DelayedCashBill.batch_id == batch.id).all()
+    center_penalties = (
+        db.query(DelayedCashCenterPenalty).filter(DelayedCashCenterPenalty.batch_id == batch.id).all()
+    )
+    return DcbBatchSummary(
+        total_bills=len(bills),
+        pending_review_count=sum(1 for b in bills if b.considered not in TERMINAL_REVIEW_DECISIONS),
+        considered_count=sum(1 for b in bills if b.considered == "considered"),
+        not_considered_count=sum(1 for b in bills if b.considered == "not_considered"),
+        needs_more_detail_count=sum(1 for b in bills if b.considered == "needs_more_detail"),
+        needs_proof_count=sum(1 for b in bills if b.considered == "needs_proof"),
+        centers_in_batch=len(center_penalties),
+        total_calculated_penalty=sum((cp.calculated_penalty for cp in center_penalties), Decimal("0")),
+        total_validated_penalty=sum(
+            (cp.validated_penalty for cp in center_penalties if cp.validated_penalty is not None), Decimal("0")
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Per-center breakdown -- "Dashboard" tab's zone/cluster view for one batch.
+# Unlike WRC (zone/cluster ride along on the incident row itself, uploaded
+# verbatim), DCB bills carry only centre_code -- zone/cluster here comes
+# from the Org Master via org_service, resolved through the Centers Master
+# sync (see org_sheet_sync_service). A center not yet linked there (or
+# genuinely new) shows as "Unknown" rather than guessed.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class DcbCenterBreakdown:
+    centre_code: str
+    centre_name: str
+    zone: Optional[str]
+    cluster: Optional[str]
+    this_batch_bill_count: int
+    this_batch_considered_count: int
+    this_batch_not_considered_count: int
+    this_batch_pending_count: int
+    all_time_batch_count: int
+    all_time_considered_count: int
+    all_time_not_considered_count: int
+
+
+def _resolve_zone_cluster(db: Session, centre_code: str) -> tuple[Optional[str], Optional[str]]:
+    node = org_service.get_node_by_external_code(db, centre_code)
+    if node is None:
+        return None, None
+    zone_node = org_service.find_ancestor_by_dimension_key(db, node, "zone")
+    cluster_node = org_service.find_ancestor_by_dimension_key(db, node, "cluster")
+    return (zone_node.name if zone_node else None, cluster_node.name if cluster_node else None)
+
+
+def get_batch_centers_breakdown(db: Session, *, batch: DelayedCashUploadBatch) -> list[DcbCenterBreakdown]:
+    this_batch_bills = db.query(DelayedCashBill).filter(DelayedCashBill.batch_id == batch.id).all()
+
+    by_center: dict[str, list[DelayedCashBill]] = {}
+    for bill in this_batch_bills:
+        by_center.setdefault(bill.centre_code, []).append(bill)
+
+    results = []
+    for centre_code, bills in by_center.items():
+        first = bills[0]
+        zone, cluster = _resolve_zone_cluster(db, centre_code)
+
+        all_time_bills = db.query(DelayedCashBill).filter(DelayedCashBill.centre_code == centre_code).all()
+        all_time_batch_ids = {b.batch_id for b in all_time_bills}
+
+        results.append(
+            DcbCenterBreakdown(
+                centre_code=centre_code,
+                centre_name=first.centre_name,
+                zone=zone,
+                cluster=cluster,
+                this_batch_bill_count=len(bills),
+                this_batch_considered_count=sum(1 for b in bills if b.considered == "considered"),
+                this_batch_not_considered_count=sum(1 for b in bills if b.considered == "not_considered"),
+                this_batch_pending_count=sum(1 for b in bills if b.considered not in TERMINAL_REVIEW_DECISIONS),
+                all_time_batch_count=len(all_time_batch_ids),
+                all_time_considered_count=sum(1 for b in all_time_bills if b.considered == "considered"),
+                all_time_not_considered_count=sum(1 for b in all_time_bills if b.considered == "not_considered"),
+            )
+        )
+
+    return sorted(results, key=lambda r: r.centre_code)
 
 
 def list_bills_pending_review(db: Session) -> list[DelayedCashBill]:

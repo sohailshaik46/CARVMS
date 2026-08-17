@@ -63,6 +63,40 @@ class UploadBatchResultOut(BaseModel):
     skipped_rows: list[SkippedBillRowOut]
 
 
+class DcbBatchSummaryOut(BaseModel):
+    """KPI-style aggregate for one batch -- mirrors WRC's BatchSummaryOut,
+    adapted to DCB's own decision model."""
+
+    batch: UploadBatchOut
+    total_bills: int
+    pending_review_count: int
+    considered_count: int
+    not_considered_count: int
+    needs_more_detail_count: int
+    needs_proof_count: int
+    centers_in_batch: int
+    total_calculated_penalty: Decimal
+    total_validated_penalty: Decimal
+
+
+class DcbCenterBreakdownOut(BaseModel):
+    """One center's presence in this batch, with zone/cluster (resolved via
+    the Org Master -- "Unknown" for a center not yet linked there) and
+    all-time repeat-non-compliance + considered/not-considered history."""
+
+    centre_code: str
+    centre_name: str
+    zone: Optional[str]
+    cluster: Optional[str]
+    this_batch_bill_count: int
+    this_batch_considered_count: int
+    this_batch_not_considered_count: int
+    this_batch_pending_count: int
+    all_time_batch_count: int
+    all_time_considered_count: int
+    all_time_not_considered_count: int
+
+
 class ResponseLinkDetailOut(BaseModel):
     center_penalty_id: int
     centre_code: str

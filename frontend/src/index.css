@@ -27,10 +27,17 @@
    "vigilance-*" is CARVMS's own internal-tool identity, not a NephroPlus
    guest-facing color -- a muted amber/gold used for KPI emphasis and
    investigation-themed accents on the dark surface, chosen to read as
-   "case file / evidence tag" rather than a second competing CTA color
-   (brand-600 crimson remains the one primary action color everywhere,
-   dark or light, doubling naturally as an alert/flag color for a
-   vigilance tool). */
+   "case file / evidence tag".
+
+   brand-600 crimson is reserved for actual NephroPlus-branded surfaces --
+   the logo, and the public response portal (DelayedCashCaseCard /
+   WrcCaseCard and the pages that render them), which is a real external
+   NephroPlus communication, not "the software". Every internal, dark,
+   authenticated page uses the neon system below instead for actions and
+   highlights: neon-green for primary/positive actions and the active
+   state, neon-blue for navigation/view links, neon-pink for destructive
+   actions -- red never appears as a UI action color on the dark surface,
+   only ever tied to NephroPlus identity itself. */
 @theme {
   --color-brand-50: #fcedec;
   --color-brand-100: #f8dcd9;
@@ -63,28 +70,34 @@
   --color-neon-500: #12e673;
   --color-neon-600: #0abd5c;
 
-  /* Neon pink -- a sparing SECOND accent, never competing with green for
-     the same "hover/active" meaning. Used only as small hints of variety
-     (a glow blob, a lone illustration detail, an occasional badge) --
-     deliberately not wired into any interactive state, so it stays a
-     accent flourish rather than a third competing signal color. */
+  /* Neon pink -- reserved specifically for destructive/danger actions
+     (Delete buttons, the danger Button variant) on the dark surface, now
+     that red no longer fills that role there -- red stays exclusive to
+     NephroPlus brand contexts. Also used as a sparing accent flourish
+     elsewhere (a glow blob, a lone illustration detail), but its one
+     interactive meaning is "this is destructive", never competing with
+     neon-green's "primary/positive action" meaning. */
   --color-neon-pink-300: #ff8fd6;
   --color-neon-pink-400: #ff4fc3;
   --color-neon-pink-500: #f01fae;
 
-  /* Neon blue -- same rule as neon-pink: a sparing third hint of variety,
-     never wired into an interactive state, never competing with
-     neon-green's "hover/active" meaning. */
+  /* Neon blue -- reserved for navigation/view-only actions (view/open,
+     search results, non-destructive toggles) so it never competes with
+     neon-green's "primary/positive action" meaning or neon-pink's
+     "destructive" meaning. */
   --color-neon-blue-300: #7dd8ff;
   --color-neon-blue-400: #2ec2ff;
   --color-neon-blue-500: #0aa3ee;
 
   /* True near-black surfaces -- deeper than slate-950, used for the base
      app background and dropdown/menu panels per the "black background with
-     gold and neon highlights" direction. */
-  --color-void-950: #050506;
-  --color-void-900: #0a0a0c;
-  --color-void-800: #121215;
+     gold and neon highlights" direction. Kept a touch lighter than pure
+     black (rather than #000000) specifically for visibility -- borders,
+     dividers and muted text read noticeably better against these than
+     against true black without sacrificing the dark identity. */
+  --color-void-950: #0b0b0d;
+  --color-void-900: #141417;
+  --color-void-800: #1c1c20;
 
   --font-sans: "Open Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-heading: "Omnes", "Open Sans", "Segoe UI", system-ui, sans-serif;

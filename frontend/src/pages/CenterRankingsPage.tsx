@@ -60,6 +60,7 @@ export function CenterRankingsPage() {
                 .filter((r) => r.composite_score !== null)
                 .slice(0, 8)
                 .map((r) => ({ label: r.centre_name, value: r.composite_score as number }))}
+              domain={[0, 100]}
             />
           </CardBody>
         </Card>
@@ -69,7 +70,7 @@ export function CenterRankingsPage() {
         <Card>
           <CardHeader title="Scoring Weights" />
           <CardBody>
-            <p className="mb-3 text-xs text-slate-500">
+            <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
               Equal weights by default — adjust to reflect real business priorities. Scores are relative to the
               centers currently being compared, not against an absolute target.
             </p>
@@ -78,12 +79,12 @@ export function CenterRankingsPage() {
                 const current = weights?.find((w) => w.component_key === component)
                 return (
                   <div key={component}>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">{COMPONENT_LABELS[component]}</label>
+                    <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">{COMPONENT_LABELS[component]}</label>
                     <input
                       type="number"
                       step="0.05"
                       min="0"
-                      className="w-full rounded border border-slate-700 px-2 py-1 text-sm"
+                      className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800 dark:border-slate-700 dark:bg-void-900 dark:text-slate-100"
                       defaultValue={current?.weight ?? 0}
                       onBlur={(e) => {
                         const value = Number(e.target.value)
@@ -113,7 +114,7 @@ export function CenterRankingsPage() {
           {rankings && rankings.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="text-xs uppercase text-slate-500">
+                <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                   <tr>
                     <th className="py-2 pr-4">Rank</th>
                     <th className="py-2 pr-4">Center</th>
@@ -126,20 +127,20 @@ export function CenterRankingsPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {rankings.map((r) => (
                     <tr key={r.centre_code}>
-                      <td className="py-2 pr-4 font-medium">#{r.rank}</td>
-                      <td className="py-2 pr-4">
+                      <td className="py-2 pr-4 font-medium text-slate-800 dark:text-slate-100">#{r.rank}</td>
+                      <td className="py-2 pr-4 text-slate-800 dark:text-slate-100">
                         {r.centre_name}
-                        <div className="text-xs text-slate-500">{r.centre_code}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">{r.centre_code}</div>
                       </td>
-                      <td className="py-2 pr-4 text-slate-500">{r.case_count}</td>
+                      <td className="py-2 pr-4 text-slate-500 dark:text-slate-400">{r.case_count}</td>
                       <td className="py-2 pr-4">
                         <span
                           className={`font-semibold ${
                             r.composite_score === null
-                              ? 'text-slate-500'
+                              ? 'text-slate-500 dark:text-slate-400'
                               : r.composite_score >= 66
                                 ? 'text-green-600'
                                 : r.composite_score >= 33
@@ -151,7 +152,7 @@ export function CenterRankingsPage() {
                         </span>
                       </td>
                       {CENTER_SCORE_COMPONENTS.map((c) => (
-                        <td key={c} className="py-2 pr-4 text-slate-500">
+                        <td key={c} className="py-2 pr-4 text-slate-500 dark:text-slate-400">
                           {formatComponentValue(c, r.components[c]?.raw ?? null)}
                         </td>
                       ))}

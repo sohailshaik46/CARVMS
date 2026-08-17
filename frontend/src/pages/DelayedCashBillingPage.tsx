@@ -1,15 +1,17 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
-import { Card, CardBody, CardHeader } from '../components/ui/Card'
+import { Card, CardBody, CardHeader, KpiCard } from '../components/ui/Card'
 import { TextField } from '../components/ui/Field'
 import { EmptyState, ErrorBanner, Spinner } from '../components/ui/Feedback'
 import { HeroBanner } from '../components/ui/HeroBanner'
+import { ChartIcon, ReceiptIcon, UsersIcon } from '../components/ui/Icons'
 import { LedgerStackIllustration } from '../components/ui/Illustrations'
 import { Modal } from '../components/ui/Modal'
 import { Select } from '../components/ui/Select'
+import { Tooltip } from '../components/ui/Tooltip'
 import { useToast } from '../components/ui/ToastProvider'
 import { apiErrorMessage } from '../lib/api'
 import {
@@ -19,10 +21,13 @@ import {
   downloadBatchExport,
   downloadCaseResponseEvidence,
   getActionTaken,
+  getBatchCentersBreakdown,
+  getBatchSummary,
   getCaseResponses,
   getCentersActivity,
   getReviewQueue,
   listBatches,
+  listBillsForCenterPenalty,
   listCenterPenalties,
   listContactChangeRequests,
   notifyBill,
@@ -31,17 +36,27 @@ import {
   reviewBill,
   uploadBatch,
 } from '../lib/resources/delayedCash'
+import {
+  downloadAutoValidationExport,
+  listDcbAutoValidation,
+  overrideDcbResponse,
+  reevaluateAllDcb,
+  reevaluateDcbResponse,
+} from '../lib/resources/autoValidation'
 import type {
+  AutoValidationBucket,
+  AutoValidationResponse,
   BatchPublishResult,
   BillReviewDecision,
   ContactChangeRequest,
+  DcbCenterBreakdown,
   DelayedCashBill,
   DelayedCashUploadBatch,
   UploadBatchResult,
 } from '../lib/types'
 
-type Tab = 'batches' | 'review-queue' | 'action-taken' | 'centers-activity' | 'notifications'
-const TAB_VALUES: Tab[] = ['batches', 'review-queue', 'action-taken', 'centers-activity', 'notifications']
+type Tab = 'batches' | 'review-queue' | 'auto-validation' | 'action-taken' | 'centers-activity' | 'notifications'
+const TAB_VALUES: Tab[] = ['batches', 'review-queue', 'auto-validation', 'action-taken', 'centers-activity', 'notifications']
 
 function formatMoney(value: string): string {
   return `₹${Number(value).toLocaleString('en-IN')}`
@@ -58,8 +73,19 @@ export function DelayedCashBillingPage() {
   const [searchParams] = useSearchParams()
   const initialTab = TAB_VALUES.find((t) => t === searchParams.get('tab')) ?? 'batches'
   const [tab, setTab] = useState<Tab>(initialTab)
+  // A KPI card *within this same page* (e.g. the batch dashboard's
+  // "Considered" box) navigates via `?tab=...` too, but since the pathname
+  // doesn't change, this component never remounts -- `useState(initialTab)`
+  // alone would silently miss it. Re-sync whenever the URL's own tab
+  // param changes, without fighting manual tab-bar clicks (those never
+  // touch the URL, so this effect stays quiet unless a link does).
+  useEffect(() => {
+    const fromUrl = TAB_VALUES.find((t) => t === searchParams.get('tab'))
+    if (fromUrl) setTab(fromUrl)
+  }, [searchParams])
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null)
+  const [dashboardBatchId, setDashboardBatchId] = useState<number | null>(null)
   const [publishResult, setPublishResult] = useState<BatchPublishResult | null>(null)
   const [batchToDelete, setBatchToDelete] = useState<DelayedCashUploadBatch | null>(null)
   const queryClient = useQueryClient()
@@ -98,6 +124,7 @@ export function DelayedCashBillingPage() {
   const TABS: { key: Tab; label: string }[] = [
     { key: 'batches', label: 'Batches' },
     { key: 'review-queue', label: 'Review Queue' },
+    { key: 'auto-validation', label: 'Auto Validation' },
     { key: 'action-taken', label: 'Action Taken' },
     { key: 'centers-activity', label: 'Centers Activity' },
     { key: 'notifications', label: 'Notifications' },
@@ -114,20 +141,20 @@ export function DelayedCashBillingPage() {
         }
       />
 
-      <div className="flex gap-1 border-b border-slate-800">
+      <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`relative px-3 py-2 text-sm font-medium ${
               tab === t.key
-                ? 'border-b-2 border-brand-600 text-brand-300'
-                : 'text-slate-500 hover:text-slate-200'
+                ? 'border-b-2 border-brand-600 text-brand-700 dark:border-neon-500 dark:text-neon-400'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             {t.label}
             {t.key === 'notifications' && !!pendingContactChanges?.length && (
-              <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-neon-500 px-1.5 py-0.5 text-[10px] font-semibold text-void-950">
+              <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white dark:bg-neon-500 dark:text-void-950">
                 {pendingContactChanges.length}
               </span>
             )}
@@ -148,7 +175,7 @@ export function DelayedCashBillingPage() {
               {batches && batches.length > 0 && (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="text-xs uppercase text-slate-500">
+                    <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                       <tr>
                         <th className="py-2 pr-4">Period</th>
                         <th className="py-2 pr-4">Source File</th>
@@ -157,9 +184,9 @@ export function DelayedCashBillingPage() {
                         <th className="py-2 pr-4">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                       {batches.map((batch) => (
-                        <tr key={batch.id} className="hover:bg-slate-800">
+                        <tr key={batch.id} className="hover:bg-slate-50 dark:hover:bg-slate-700">
                           <td className="py-2 pr-4">
                             {formatDate(batch.period_start)} – {formatDate(batch.period_end)}
                           </td>
@@ -170,25 +197,39 @@ export function DelayedCashBillingPage() {
                           <td className="py-2 pr-4">{formatDate(batch.uploaded_at)}</td>
                           <td className="py-2 pr-4">
                             <div className="flex gap-2">
-                              <button
-                                className="text-xs font-medium text-brand-600 hover:text-brand-400"
-                                onClick={() => setSelectedBatchId(batch.id)}
-                              >
-                                View centers
-                              </button>
-                              <button
-                                className="text-xs font-medium text-brand-600 hover:text-brand-400 disabled:opacity-50"
-                                disabled={publishMutation.isPending}
-                                onClick={() => publishMutation.mutate(batch.id)}
-                              >
-                                {batch.status === 'published' ? 'Re-publish links' : 'Publish links'}
-                              </button>
-                              <button
-                                className="text-xs font-medium text-red-500 hover:text-red-400"
-                                onClick={() => setBatchToDelete(batch)}
-                              >
-                                Delete
-                              </button>
+                              <Tooltip text="Opens this batch's KPI dashboard -- total bills, decision breakdown, and a zone/cluster view of every center in it.">
+                                <button
+                                  className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300"
+                                  onClick={() => setDashboardBatchId(batch.id)}
+                                >
+                                  Dashboard
+                                </button>
+                              </Tooltip>
+                              <Tooltip text="Opens every center in this batch with its total bills and calculated penalty.">
+                                <button
+                                  className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300"
+                                  onClick={() => setSelectedBatchId(batch.id)}
+                                >
+                                  View centers
+                                </button>
+                              </Tooltip>
+                              <Tooltip text="Generates a response link for every center with a bill in this batch, and shows the full list so you can share or email them.">
+                                <button
+                                  className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-neon-400 dark:hover:text-neon-300 disabled:opacity-50"
+                                  disabled={publishMutation.isPending}
+                                  onClick={() => publishMutation.mutate(batch.id)}
+                                >
+                                  {batch.status === 'published' ? 'Re-publish links' : 'Publish links'}
+                                </button>
+                              </Tooltip>
+                              <Tooltip text="Permanently deletes this batch and everything computed from it -- bills, penalties, responses, and evidence files. Cannot be undone; asks for confirmation first.">
+                                <button
+                                  className="text-xs font-medium text-red-600 hover:text-red-700 dark:text-neon-pink-400 dark:hover:text-neon-pink-300"
+                                  onClick={() => setBatchToDelete(batch)}
+                                >
+                                  Delete
+                                </button>
+                              </Tooltip>
                             </div>
                           </td>
                         </tr>
@@ -200,6 +241,9 @@ export function DelayedCashBillingPage() {
             </CardBody>
           </Card>
 
+          {dashboardBatchId != null && (
+            <DcbBatchDashboard batchId={dashboardBatchId} onClose={() => setDashboardBatchId(null)} />
+          )}
           {selectedBatchId != null && (
             <BatchCenterPenalties batchId={selectedBatchId} onClose={() => setSelectedBatchId(null)} />
           )}
@@ -207,6 +251,7 @@ export function DelayedCashBillingPage() {
       )}
 
       {tab === 'review-queue' && <ReviewQueueTab />}
+      {tab === 'auto-validation' && <AutoValidationTab />}
       {tab === 'action-taken' && <ActionTakenTab />}
       {tab === 'centers-activity' && <CentersActivityTab />}
       {tab === 'notifications' && <ContactChangeNotificationsTab />}
@@ -232,8 +277,8 @@ export function DelayedCashBillingPage() {
       {batchToDelete && (
         <Modal title="Delete this batch?" onClose={() => setBatchToDelete(null)}>
           <div className="space-y-4">
-            <p className="text-sm text-slate-300">
-              This permanently deletes <span className="font-medium text-slate-100">{batchToDelete.source_filename}</span>{' '}
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              This permanently deletes <span className="font-medium text-slate-900 dark:text-slate-100">{batchToDelete.source_filename}</span>{' '}
               ({formatDate(batchToDelete.period_start)} – {formatDate(batchToDelete.period_end)}) along with every bill,
               center penalty, response-portal link, submitted response and evidence file, and activity record tied to
               it. This cannot be undone -- you can re-upload a corrected file afterwards.
@@ -258,10 +303,18 @@ export function DelayedCashBillingPage() {
   )
 }
 
-const REVIEW_STATUS_OPTIONS: { key: 'unreviewed' | 'needs_more_detail' | 'needs_proof'; label: string }[] = [
-  { key: 'unreviewed', label: 'Never Reviewed' },
-  { key: 'needs_more_detail', label: 'Needs More Detail' },
-  { key: 'needs_proof', label: 'Needs Proof' },
+const REVIEW_STATUS_OPTIONS: { key: 'unreviewed' | 'needs_more_detail' | 'needs_proof'; label: string; tooltip: string }[] = [
+  { key: 'unreviewed', label: 'Never Reviewed', tooltip: 'No decision has been made on this bill yet.' },
+  {
+    key: 'needs_more_detail',
+    label: 'Needs More Detail',
+    tooltip: 'Vigilance asked the center to follow up with more information -- awaiting their next response.',
+  },
+  {
+    key: 'needs_proof',
+    label: 'Needs Proof',
+    tooltip: 'Vigilance asked the center for supporting evidence specifically -- awaiting their next response.',
+  },
 ]
 
 /** "YYYY-MM" -> "July 2026", built from a bill's own bill_date so it never
@@ -279,17 +332,26 @@ function monthLabel(key: string): string {
 function ReviewQueueTab() {
   const queryClient = useQueryClient()
   const { showToast } = useToast()
+  const [searchParams] = useSearchParams()
+  // A "?batch=" link (e.g. from the batch dashboard's "Total Incidents" /
+  // "Pending Review" boxes) scopes the list to that batch specifically --
+  // there's no server-side batch filter for this endpoint (a bill's own
+  // month is the honest grouping key, since a batch can straddle months),
+  // so this is applied client-side, on top of whatever month is selected.
+  const batchParam = searchParams.get('batch') ? Number(searchParams.get('batch')) : null
   const [lastLink, setLastLink] = useState<{ centre_code: string; response_url: string } | null>(null)
   const [monthFilter, setMonthFilter] = useState<string | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<'unreviewed' | 'needs_more_detail' | 'needs_proof' | 'all'>('all')
 
   const { data: allBills, isLoading, error } = useQuery({ queryKey: ['dcb-review-queue'], queryFn: getReviewQueue })
 
+  const billsForBatch = batchParam ? allBills?.filter((b) => b.batch_id === batchParam) : allBills
+
   // Distinct months present, newest first -- derived from the bills
   // actually in the queue, never a fixed calendar range.
-  const monthOptions = Array.from(new Set(allBills?.map((b) => monthKey(b.bill_date)) ?? [])).sort().reverse()
+  const monthOptions = Array.from(new Set(billsForBatch?.map((b) => monthKey(b.bill_date)) ?? [])).sort().reverse()
 
-  const billsForMonth = allBills?.filter((b) => monthFilter === 'all' || monthKey(b.bill_date) === monthFilter)
+  const billsForMonth = billsForBatch?.filter((b) => monthFilter === 'all' || monthKey(b.bill_date) === monthFilter)
 
   function statusOf(bill: DelayedCashBill): 'unreviewed' | 'needs_more_detail' | 'needs_proof' {
     if (bill.considered === 'needs_more_detail' || bill.considered === 'needs_proof') return bill.considered
@@ -324,26 +386,42 @@ function ReviewQueueTab() {
     navigator.clipboard.writeText(url).then(() => showToast('Link copied'))
   }
 
-  const decisions: { key: BillReviewDecision; label: string }[] = [
-    { key: 'considered', label: 'Considered' },
-    { key: 'not_considered', label: 'Not Considered' },
-    { key: 'needs_more_detail', label: 'Need More Detail' },
-    { key: 'needs_proof', label: 'Need Proof' },
+  const decisions: { key: BillReviewDecision; label: string; tooltip: string }[] = [
+    {
+      key: 'considered',
+      label: 'Considered',
+      tooltip: 'Accepts the center\'s explanation as a valid exception -- excluded from this center\'s validated penalty.',
+    },
+    {
+      key: 'not_considered',
+      label: 'Not Considered',
+      tooltip: "Rejects the center's explanation -- this bill's penalty (day_difference x rate) counts toward the center's validated penalty.",
+    },
+    {
+      key: 'needs_more_detail',
+      label: 'Need More Detail',
+      tooltip: 'Kicks the case back to the center for a follow-up -- not a financial decision yet. Mints a fresh response link automatically.',
+    },
+    {
+      key: 'needs_proof',
+      label: 'Need Proof',
+      tooltip: 'Same as "Need More Detail", specifically asking the center for supporting evidence before a decision can be made.',
+    },
   ]
 
   return (
     <div className="space-y-4">
       {lastLink && (
-        <div className="flex items-center justify-between rounded-md border border-amber-800 bg-amber-500/10 px-3 py-2 text-sm">
-          <span className="text-amber-300">
+        <div className="flex items-center justify-between rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm dark:border-amber-800 dark:bg-amber-500/10">
+          <span className="text-amber-800 dark:text-amber-300">
             Response link for <strong>{lastLink.centre_code}</strong>: no automatic email yet (no center email list
             configured) -- copy and send manually: <span className="text-xs">{lastLink.response_url}</span>
           </span>
           <div className="flex shrink-0 gap-2">
-            <button className="text-xs font-medium text-brand-600 hover:text-brand-400" onClick={() => copyLink(lastLink.response_url)}>
+            <button className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300" onClick={() => copyLink(lastLink.response_url)}>
               Copy
             </button>
-            <button className="text-xs font-medium text-slate-500 hover:text-slate-200" onClick={() => setLastLink(null)}>
+            <button className="text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" onClick={() => setLastLink(null)}>
               Dismiss
             </button>
           </div>
@@ -366,30 +444,33 @@ function ReviewQueueTab() {
         />
         <CardBody>
           <div className="mb-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setStatusFilter('all')}
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                statusFilter === 'all'
-                  ? 'border-vigilance-500 bg-vigilance-500/15 text-vigilance-300'
-                  : 'border-slate-700 text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              All ({billsForMonth?.length ?? 0})
-            </button>
-            {REVIEW_STATUS_OPTIONS.map((opt) => (
+            <Tooltip text="Every bill still awaiting a decision for the selected month (or all months).">
               <button
-                key={opt.key}
                 type="button"
-                onClick={() => setStatusFilter(opt.key)}
+                onClick={() => setStatusFilter('all')}
                 className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                  statusFilter === opt.key
-                    ? 'border-vigilance-500 bg-vigilance-500/15 text-vigilance-300'
-                    : 'border-slate-700 text-slate-400 hover:bg-slate-800'
+                  statusFilter === 'all'
+                    ? 'border-brand-200 bg-brand-50 text-brand-700 dark:border-vigilance-500 dark:bg-vigilance-500/15 dark:text-vigilance-300'
+                    : 'border-slate-300 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700'
                 }`}
               >
-                {opt.label} ({countsByStatus[opt.key]})
+                All ({billsForMonth?.length ?? 0})
               </button>
+            </Tooltip>
+            {REVIEW_STATUS_OPTIONS.map((opt) => (
+              <Tooltip key={opt.key} text={opt.tooltip}>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter(opt.key)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                    statusFilter === opt.key
+                      ? 'border-brand-200 bg-brand-50 text-brand-700 dark:border-vigilance-500 dark:bg-vigilance-500/15 dark:text-vigilance-300'
+                      : 'border-slate-300 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {opt.label} ({countsByStatus[opt.key]})
+                </button>
+              </Tooltip>
             ))}
           </div>
 
@@ -408,7 +489,7 @@ function ReviewQueueTab() {
           {bills && bills.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="text-xs uppercase text-slate-500">
+                <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                   <tr>
                     <th className="py-2 pr-4">Center</th>
                     <th className="py-2 pr-4">Sales Bill</th>
@@ -418,30 +499,31 @@ function ReviewQueueTab() {
                     <th className="py-2 pr-4">Decision</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {bills.map((bill) => (
                     <tr key={bill.id}>
                       <td className="py-2 pr-4">
                         {bill.centre_code}
-                        <div className="text-xs text-slate-500">{bill.centre_name}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">{bill.centre_name}</div>
                       </td>
                       <td className="py-2 pr-4">{bill.sales_bill}</td>
                       <td className="py-2 pr-4">{bill.calculated_day_difference}</td>
                       <td className="py-2 pr-4 font-medium">{formatMoney(bill.calculated_penalty)}</td>
                       <td className="py-2 pr-4">
-                        {bill.considered ? <Badge tone="status">{bill.considered}</Badge> : <span className="text-xs text-slate-500">Not yet reviewed</span>}
+                        {bill.considered ? <Badge tone="status">{bill.considered}</Badge> : <span className="text-xs text-slate-500 dark:text-slate-400">Not yet reviewed</span>}
                       </td>
                       <td className="py-2 pr-4">
                         <div className="flex flex-wrap gap-1">
                           {decisions.map((d) => (
-                            <button
-                              key={d.key}
-                              disabled={reviewMutation.isPending}
-                              className="rounded-md border border-slate-700 px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-800 disabled:opacity-50"
-                              onClick={() => reviewMutation.mutate({ billId: bill.id, decision: d.key })}
-                            >
-                              {d.label}
-                            </button>
+                            <Tooltip key={d.key} text={d.tooltip}>
+                              <button
+                                disabled={reviewMutation.isPending}
+                                className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700"
+                                onClick={() => reviewMutation.mutate({ billId: bill.id, decision: d.key })}
+                              >
+                                {d.label}
+                              </button>
+                            </Tooltip>
                           ))}
                         </div>
                         <RemarksAndProofDropdown centerPenaltyId={bill.center_penalty_id} />
@@ -485,29 +567,29 @@ function RemarksAndProofDropdown({ centerPenaltyId }: { centerPenaltyId: number 
     <div className="mt-2">
       <button
         type="button"
-        className="text-xs font-medium text-vigilance-400 hover:text-neon-400"
+        className="text-xs font-medium text-slate-500 hover:text-np-teal dark:text-vigilance-400 dark:hover:text-neon-400"
         onClick={() => setIsOpen((o) => !o)}
       >
         {isOpen ? '▲ Hide' : '▼ Show'} center remarks &amp; proof
       </button>
       {isOpen && (
-        <div className="mt-1 max-w-md space-y-2 rounded-md border border-slate-800 bg-void-950 p-2">
+        <div className="mt-1 max-w-md space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-void-950">
           {isLoading && <Spinner />}
           {error && <ErrorBanner message={apiErrorMessage(error)} />}
-          {data && data.length === 0 && <p className="text-xs text-slate-500">No remarks submitted yet.</p>}
+          {data && data.length === 0 && <p className="text-xs text-slate-500 dark:text-slate-400">No remarks submitted yet.</p>}
           {data?.map((r) => (
-            <div key={r.id} className="rounded border border-slate-800 p-2 text-xs">
+            <div key={r.id} className="rounded border border-slate-200 p-2 text-xs dark:border-slate-700">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-slate-200">
-                  {r.responder_name} <span className="text-slate-500">({r.responder_npid})</span>
+                <span className="font-medium text-slate-700 dark:text-slate-200">
+                  {r.responder_name} <span className="text-slate-500 dark:text-slate-400">({r.responder_npid})</span>
                 </span>
-                <span className="shrink-0 text-slate-500">{formatDate(r.submitted_at)}</span>
+                <span className="shrink-0 text-slate-500 dark:text-slate-400">{formatDate(r.submitted_at)}</span>
               </div>
-              <p className="mt-1 whitespace-pre-wrap text-slate-400">{r.reason}</p>
+              <p className="mt-1 whitespace-pre-wrap text-slate-500 dark:text-slate-400">{r.reason}</p>
               <button
                 type="button"
                 disabled={downloadMutation.isPending}
-                className="mt-1 font-medium text-vigilance-400 hover:text-neon-400 disabled:opacity-50"
+                className="mt-1 font-medium text-slate-500 hover:text-np-teal dark:text-vigilance-400 dark:hover:text-neon-400 disabled:opacity-50"
                 onClick={() =>
                   downloadMutation.mutate({ responseId: r.id, filename: r.evidence_original_filename })
                 }
@@ -552,7 +634,7 @@ function NotifyCenterControl({ bill }: { bill: DelayedCashBill }) {
     <div className="mt-2 max-w-md space-y-1">
       {needsComment && (
         <textarea
-          className="w-full rounded-md border border-slate-700 bg-void-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600"
+          className="w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 placeholder:text-slate-400 dark:border-slate-700 dark:bg-void-950 dark:text-slate-200 dark:placeholder:text-slate-600"
           rows={2}
           placeholder="Type what you need from this center..."
           value={comment}
@@ -563,13 +645,13 @@ function NotifyCenterControl({ bill }: { bill: DelayedCashBill }) {
         <button
           type="button"
           disabled={notifyMutation.isPending || (needsComment && !comment.trim())}
-          className="rounded-md border border-vigilance-700 px-2 py-1 text-xs font-medium text-vigilance-400 hover:bg-vigilance-900/40 disabled:opacity-40"
+          className="rounded-md border border-np-teal/40 px-2 py-1 text-xs font-medium text-np-teal hover:bg-np-teal/10 disabled:opacity-40 dark:border-vigilance-700 dark:text-vigilance-400 dark:hover:bg-vigilance-900/40"
           onClick={() => notifyMutation.mutate()}
         >
           ✉ {needsComment ? 'Send' : 'Notify Center'}
         </button>
         {lastResult && (
-          <span className={`text-xs ${lastResult.sent ? 'text-neon-400' : 'text-amber-400'}`}>
+          <span className={`text-xs ${lastResult.sent ? 'text-np-teal dark:text-neon-400' : 'text-amber-600 dark:text-amber-400'}`}>
             {lastResult.sent ? 'Sent' : lastResult.reason}
           </span>
         )}
@@ -578,13 +660,402 @@ function NotifyCenterControl({ bill }: { bill: DelayedCashBill }) {
   )
 }
 
-function ActionTakenTab() {
-  const { data: bills, isLoading, error } = useQuery({ queryKey: ['dcb-action-taken'], queryFn: () => getActionTaken() })
+const AUTO_BUCKET_LABELS: Record<AutoValidationBucket, string> = {
+  considered: 'Considered',
+  not_considered: 'Not Considered',
+  manual_check: 'Manual Check',
+}
+
+const AUTO_BUCKET_TOOLTIPS: Record<AutoValidationBucket, string> = {
+  considered: 'Remarks the rules matched to a "considered" category, with the keyword that matched -- shown here as a suggestion only. Vigilance still confirms the real decision in the Review Queue.',
+  not_considered: 'Remarks the rules matched to a "not considered" category, with the reason that would be given to the center -- advisory only, nothing is sent or finalized automatically.',
+  manual_check: 'Remarks that matched no rule, or matched conflicting rules on both sides -- these need a human read before you decide.',
+}
+
+/** Every bill tied to one case, with the SAME decision buttons the Review
+ * Queue uses -- this is the "click the auto-validation remark to open the
+ * relevant bills and reverify" surface, expanded inline rather than
+ * navigating away so Vigilance keeps the auto-validation context on
+ * screen while deciding. */
+function DcbBillsToReverify({ centerPenaltyId }: { centerPenaltyId: number }) {
+  const queryClient = useQueryClient()
+  const { showToast } = useToast()
+  const { data: bills, isLoading, error } = useQuery({
+    queryKey: ['dcb-bills-for-center-penalty', centerPenaltyId],
+    queryFn: () => listBillsForCenterPenalty(centerPenaltyId),
+  })
+
+  const reviewMutation = useMutation({
+    mutationFn: ({ billId, decision }: { billId: number; decision: BillReviewDecision }) => reviewBill(billId, decision),
+    onSuccess: (_result, { decision }) => {
+      queryClient.invalidateQueries({ queryKey: ['dcb-bills-for-center-penalty', centerPenaltyId] })
+      queryClient.invalidateQueries({ queryKey: ['dcb-review-queue'] })
+      queryClient.invalidateQueries({ queryKey: ['dcb-action-taken'] })
+      showToast(`Marked "${decision.replace(/_/g, ' ')}"`)
+    },
+    onError: (err) => showToast(apiErrorMessage(err, 'Could not save that decision'), 'error'),
+  })
+
+  const decisions: { key: BillReviewDecision; label: string; tooltip: string }[] = [
+    {
+      key: 'considered',
+      label: 'Considered',
+      tooltip: 'Accepts the center\'s explanation as a valid exception -- excluded from this center\'s validated penalty.',
+    },
+    {
+      key: 'not_considered',
+      label: 'Not Considered',
+      tooltip: "Rejects the center's explanation -- this bill's penalty (day_difference x rate) counts toward the center's validated penalty.",
+    },
+    {
+      key: 'needs_more_detail',
+      label: 'Need More Detail',
+      tooltip: 'Kicks the case back to the center for a follow-up -- not a financial decision yet. Mints a fresh response link automatically.',
+    },
+    {
+      key: 'needs_proof',
+      label: 'Need Proof',
+      tooltip: 'Same as "Need More Detail", specifically asking the center for supporting evidence before a decision can be made.',
+    },
+  ]
+
+  return (
+    <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-void-950">
+      {isLoading && <Spinner />}
+      {error && <ErrorBanner message={apiErrorMessage(error)} />}
+      {bills && bills.length === 0 && <p className="text-xs text-slate-500 dark:text-slate-400">No bills found for this case.</p>}
+      {bills && bills.length > 0 && (
+        <div className="space-y-2">
+          {bills.map((bill) => (
+            <div key={bill.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2 text-xs last:border-0 last:pb-0 dark:border-slate-700">
+              <div>
+                <span className="font-medium text-slate-700 dark:text-slate-200">{bill.sales_bill}</span>{' '}
+                <span className="text-slate-500 dark:text-slate-400">
+                  {formatDate(bill.bill_date)} · {formatMoney(bill.calculated_penalty)}
+                </span>
+                {bill.considered && (
+                  <span className="ml-2">
+                    <Badge tone="status">{bill.considered}</Badge>
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {decisions.map((d) => (
+                  <Tooltip key={d.key} text={d.tooltip}>
+                    <button
+                      disabled={reviewMutation.isPending}
+                      className="rounded-md border border-slate-300 px-2 py-1 font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700"
+                      onClick={() => reviewMutation.mutate({ billId: bill.id, decision: d.key })}
+                    >
+                      {d.label}
+                    </button>
+                  </Tooltip>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AutoValidationOverrideControl({ response }: { response: AutoValidationResponse }) {
+  const queryClient = useQueryClient()
+  const { showToast } = useToast()
+  const [isOpen, setIsOpen] = useState(false)
+  const [note, setNote] = useState('')
+
+  const overrideMutation = useMutation({
+    mutationFn: (bucket: AutoValidationBucket) => overrideDcbResponse(response.id, bucket, note || undefined),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dcb-auto-validation'] })
+      showToast('Override saved')
+      setIsOpen(false)
+      setNote('')
+    },
+    onError: (err) => showToast(apiErrorMessage(err, 'Could not save override'), 'error'),
+  })
+
+  return (
+    <div className="mt-1">
+      <Tooltip text="Lets you set the bucket yourself instead of the auto-validation result -- the original auto result is kept for reporting, and your override is recorded with your name and an optional note.">
+        <button
+          type="button"
+          className="text-xs font-medium text-slate-500 hover:text-np-teal dark:text-vigilance-400 dark:hover:text-neon-400"
+          onClick={() => setIsOpen((o) => !o)}
+        >
+          {isOpen ? '▲ Hide override' : '✎ Override'}
+        </button>
+      </Tooltip>
+      {isOpen && (
+        <div className="mt-1 max-w-xs space-y-1">
+          <textarea
+            className="w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 dark:border-slate-700 dark:bg-void-950 dark:text-slate-200"
+            rows={2}
+            placeholder="Why are you overriding the auto-validation result? (optional)"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <div className="flex gap-1">
+            {(['considered', 'not_considered', 'manual_check'] as AutoValidationBucket[]).map((bucket) => (
+              <Tooltip key={bucket} text={`Sets this response's official bucket to "${AUTO_BUCKET_LABELS[bucket]}".`}>
+                <button
+                  disabled={overrideMutation.isPending}
+                  className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700"
+                  onClick={() => overrideMutation.mutate(bucket)}
+                >
+                  {AUTO_BUCKET_LABELS[bucket]}
+                </button>
+              </Tooltip>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AutoValidationTab() {
+  const queryClient = useQueryClient()
+  const { showToast } = useToast()
+  const [bucketFilter, setBucketFilter] = useState<AutoValidationBucket | 'all'>('all')
+  const [expandedId, setExpandedId] = useState<number | null>(null)
+
+  const { data: responses, isLoading, error } = useQuery({
+    queryKey: ['dcb-auto-validation'],
+    queryFn: () => listDcbAutoValidation(),
+  })
+
+  const filtered = responses?.filter((r) => bucketFilter === 'all' || r.effective_bucket === bucketFilter)
+
+  const countsByBucket = (['considered', 'not_considered', 'manual_check'] as AutoValidationBucket[]).reduce(
+    (acc, bucket) => {
+      acc[bucket] = responses?.filter((r) => r.effective_bucket === bucket).length ?? 0
+      return acc
+    },
+    {} as Record<AutoValidationBucket, number>,
+  )
+
+  const reevaluateAllMutation = useMutation({
+    mutationFn: () => reevaluateAllDcb(),
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ['dcb-auto-validation'] })
+      showToast(`Re-ran auto-validation on ${results.length} response(s)`)
+    },
+    onError: (err) => showToast(apiErrorMessage(err, 'Could not re-run auto-validation'), 'error'),
+  })
+
+  const reevaluateOneMutation = useMutation({
+    mutationFn: (responseId: number) => reevaluateDcbResponse(responseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dcb-auto-validation'] })
+      showToast('Re-evaluated')
+    },
+    onError: (err) => showToast(apiErrorMessage(err, 'Could not re-evaluate'), 'error'),
+  })
+
+  const exportMutation = useMutation({
+    mutationFn: () => downloadAutoValidationExport(),
+    onError: (err) => showToast(apiErrorMessage(err, 'Export failed'), 'error'),
+  })
 
   return (
     <Card>
-      <CardHeader title="Decisions Already Made" />
+      <CardHeader
+        title="Auto Validation"
+        actions={
+          <div className="flex gap-2">
+            <Tooltip text="Downloads an Excel workbook of every auto-validated remark for both DCB and WRC -- a raw list plus center/zone/cluster rollups, with a repeat-instance count for recurring excuses.">
+              <Button variant="secondary" isLoading={exportMutation.isPending} onClick={() => exportMutation.mutate()}>
+                Download Report (DCB + WRC)
+              </Button>
+            </Tooltip>
+            <Tooltip text="Re-evaluates every response that hasn't been manually overridden, against the current Auto Validation Rules -- use this after you add or edit a rule so past submissions reflect it too.">
+              <Button
+                variant="secondary"
+                isLoading={reevaluateAllMutation.isPending}
+                onClick={() => reevaluateAllMutation.mutate()}
+              >
+                Re-run All
+              </Button>
+            </Tooltip>
+          </div>
+        }
+      />
       <CardBody>
+        <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
+          Every submitted remark is matched against the keyword rules under Auto Validation Rules -- Considered /
+          Not Considered / Manual Check. This is advisory only: it never sets the bill's real decision or changes
+          the penalty. Use the buttons below to reverify and confirm the actual decision in the Review Queue.
+        </p>
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Tooltip text="Every response that has been auto-validated so far, in any bucket.">
+            <button
+              type="button"
+              onClick={() => setBucketFilter('all')}
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                bucketFilter === 'all'
+                  ? 'border-brand-200 bg-brand-50 text-brand-700 dark:border-vigilance-500 dark:bg-vigilance-500/15 dark:text-vigilance-300'
+                  : 'border-slate-300 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700'
+              }`}
+            >
+              All ({responses?.length ?? 0})
+            </button>
+          </Tooltip>
+          {(['considered', 'not_considered', 'manual_check'] as AutoValidationBucket[]).map((bucket) => (
+            <Tooltip key={bucket} text={AUTO_BUCKET_TOOLTIPS[bucket]}>
+              <button
+                type="button"
+                onClick={() => setBucketFilter(bucket)}
+                className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                  bucketFilter === bucket
+                    ? 'border-brand-200 bg-brand-50 text-brand-700 dark:border-vigilance-500 dark:bg-vigilance-500/15 dark:text-vigilance-300'
+                    : 'border-slate-300 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700'
+                }`}
+              >
+                {AUTO_BUCKET_LABELS[bucket]} ({countsByBucket[bucket]})
+              </button>
+            </Tooltip>
+          ))}
+        </div>
+
+        {isLoading && <Spinner />}
+        {error && <ErrorBanner message={apiErrorMessage(error)} />}
+        {filtered && filtered.length === 0 && (
+          <EmptyState title="Nothing auto-validated yet" hint="This fills in as centers submit responses through the portal." />
+        )}
+        {filtered && filtered.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
+                <tr>
+                  <th className="py-2 pr-4">Center</th>
+                  <th className="py-2 pr-4">Remark</th>
+                  <th className="py-2 pr-4">Category</th>
+                  <th className="py-2 pr-4">Decision</th>
+                  <th className="py-2 pr-4">Submitted</th>
+                  <th className="py-2 pr-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                {filtered.map((r) => (
+                  <tr key={r.id}>
+                    <td className="py-2 pr-4">
+                      {r.centre_code}
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{r.centre_name}</div>
+                    </td>
+                    <td className="max-w-xs py-2 pr-4 text-xs text-slate-600 dark:text-slate-300">{r.reason}</td>
+                    <td className="py-2 pr-4 text-xs">
+                      {r.auto_category ?? <span className="text-slate-500 dark:text-slate-400">(no rule matched)</span>}
+                      {r.auto_matched_keyword && (
+                        <div className="text-slate-500 dark:text-slate-400">matched "{r.auto_matched_keyword}"</div>
+                      )}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {r.effective_bucket && <Badge tone="status">{r.effective_bucket}</Badge>}
+                      {r.admin_override_bucket && (
+                        <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                          overridden from {r.auto_bucket} by {r.admin_override_by_name}
+                        </div>
+                      )}
+                      {r.auto_reason && !r.admin_override_bucket && (
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{r.auto_reason}</div>
+                      )}
+                    </td>
+                    <td className="py-2 pr-4 text-xs text-slate-500 dark:text-slate-400">{formatDate(r.submitted_at)}</td>
+                    <td className="py-2 pr-4">
+                      <div className="flex flex-wrap gap-2">
+                        <Tooltip text="Opens every bill this response covers, right here, with the real Considered/Not Considered buttons -- so you can confirm the actual decision without leaving this tab.">
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-slate-500 hover:text-np-teal dark:text-vigilance-400 dark:hover:text-neon-400"
+                            onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
+                          >
+                            {expandedId === r.id ? '▲ Hide' : '▼ Reverify'} bills
+                          </button>
+                        </Tooltip>
+                        <Tooltip text="Re-evaluates just this one response against the current Auto Validation Rules -- useful right after you edit a rule.">
+                          <button
+                            type="button"
+                            disabled={reevaluateOneMutation.isPending}
+                            className="text-xs font-medium text-slate-500 hover:text-slate-800 disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200"
+                            onClick={() => reevaluateOneMutation.mutate(r.id)}
+                          >
+                            Re-run
+                          </button>
+                        </Tooltip>
+                      </div>
+                      <AutoValidationOverrideControl response={r} />
+                      {expandedId === r.id && <DcbBillsToReverify centerPenaltyId={r.case_or_penalty_id} />}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardBody>
+    </Card>
+  )
+}
+
+function ActionTakenTab() {
+  const [searchParams] = useSearchParams()
+  const batchParam = searchParams.get('batch')
+  const decisionParam = searchParams.get('decision')
+  const [batchFilter, setBatchFilter] = useState<number | 'all'>(batchParam ? Number(batchParam) : 'all')
+  const [decisionFilter, setDecisionFilter] = useState<'all' | 'considered' | 'not_considered'>(
+    decisionParam === 'considered' || decisionParam === 'not_considered' ? decisionParam : 'all',
+  )
+
+  const { data: batches } = useQuery({ queryKey: ['dcb-batches'], queryFn: listBatches })
+  const { data: billsForBatch, isLoading, error } = useQuery({
+    queryKey: ['dcb-action-taken', batchFilter],
+    queryFn: () => getActionTaken(batchFilter === 'all' ? undefined : batchFilter),
+  })
+
+  const bills = billsForBatch?.filter((b) => decisionFilter === 'all' || b.considered === decisionFilter)
+
+  return (
+    <Card>
+      <CardHeader
+        title="Decisions Already Made"
+        actions={
+          <Select
+            className="w-56 text-sm"
+            value={batchFilter === 'all' ? 'all' : String(batchFilter)}
+            onChange={(e) => setBatchFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+          >
+            <option value="all">All batches</option>
+            {batches?.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.source_filename}
+              </option>
+            ))}
+          </Select>
+        }
+      />
+      <CardBody>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(['all', 'considered', 'not_considered'] as const).map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDecisionFilter(d)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                decisionFilter === d
+                  ? 'border-brand-200 bg-brand-50 text-brand-700 dark:border-vigilance-500 dark:bg-vigilance-500/15 dark:text-vigilance-300'
+                  : 'border-slate-300 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700'
+              }`}
+            >
+              {d === 'all' ? 'All' : d === 'considered' ? 'Considered' : 'Not Considered'} (
+              {d === 'all' ? billsForBatch?.length ?? 0 : billsForBatch?.filter((b) => b.considered === d).length ?? 0}
+              )
+            </button>
+          ))}
+        </div>
+
         {isLoading && <Spinner />}
         {error && <ErrorBanner message={apiErrorMessage(error)} />}
         {bills && bills.length === 0 && (
@@ -593,7 +1064,7 @@ function ActionTakenTab() {
         {bills && bills.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-xs uppercase text-slate-500">
+              <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="py-2 pr-4">Center</th>
                   <th className="py-2 pr-4">Sales Bill</th>
@@ -602,12 +1073,12 @@ function ActionTakenTab() {
                   <th className="py-2 pr-4">Decided</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {bills.map((bill: DelayedCashBill) => (
                   <tr key={bill.id}>
                     <td className="py-2 pr-4">
                       {bill.centre_code}
-                      <div className="text-xs text-slate-500">{bill.centre_name}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{bill.centre_name}</div>
                     </td>
                     <td className="py-2 pr-4">{bill.sales_bill}</td>
                     <td className="py-2 pr-4 font-medium">{formatMoney(bill.calculated_penalty)}</td>
@@ -616,7 +1087,7 @@ function ActionTakenTab() {
                       <RemarksAndProofDropdown centerPenaltyId={bill.center_penalty_id} />
                       <NotifyCenterControl bill={bill} />
                     </td>
-                    <td className="py-2 pr-4 text-xs text-slate-500">
+                    <td className="py-2 pr-4 text-xs text-slate-500 dark:text-slate-400">
                       {bill.reviewed_at ? formatDate(bill.reviewed_at) : '—'}
                     </td>
                   </tr>
@@ -640,7 +1111,7 @@ function CentersActivityTab() {
     <Card>
       <CardHeader title="Centers Activity" />
       <CardBody>
-        <p className="mb-4 text-xs text-slate-500">
+        <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
           Every time a center manager opened or submitted through the response portal -- including centers that
           only browsed and never submitted anything.
         </p>
@@ -650,24 +1121,24 @@ function CentersActivityTab() {
         {activity && activity.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-xs uppercase text-slate-500">
+              <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="py-2 pr-4">Center</th>
                   <th className="py-2 pr-4">Event</th>
                   <th className="py-2 pr-4">When</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {activity.map((a) => (
                   <tr key={a.id}>
                     <td className="py-2 pr-4">
                       {a.centre_code}
-                      {a.centre_name && <div className="text-xs text-slate-500">{a.centre_name}</div>}
+                      {a.centre_name && <div className="text-xs text-slate-500 dark:text-slate-400">{a.centre_name}</div>}
                     </td>
                     <td className="py-2 pr-4">
                       <Badge tone="status">{a.event_type}</Badge>
                     </td>
-                    <td className="py-2 pr-4 text-xs text-slate-500">
+                    <td className="py-2 pr-4 text-xs text-slate-500 dark:text-slate-400">
                       {new Date(a.occurred_at).toLocaleString('en-IN')}
                     </td>
                   </tr>
@@ -712,7 +1183,7 @@ function ContactChangeNotificationsTab() {
     <Card>
       <CardHeader title="Pending Center Manager Contact Changes" />
       <CardBody>
-        <p className="mb-4 text-xs text-slate-500">
+        <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
           A center manager's name/NPID/email from a response submission is never written to the Org Master
           automatically -- approve here to apply it, or reject to leave the record unchanged.
         </p>
@@ -722,7 +1193,7 @@ function ContactChangeNotificationsTab() {
         {requests && requests.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-xs uppercase text-slate-500">
+              <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="py-2 pr-4">Center Code</th>
                   <th className="py-2 pr-4">Proposed Name</th>
@@ -732,24 +1203,24 @@ function ContactChangeNotificationsTab() {
                   <th className="py-2 pr-4">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {requests.map((r: ContactChangeRequest) => (
                   <tr key={r.id}>
                     <td className="py-2 pr-4">
                       {r.centre_code_hint}
                       {r.org_node_id == null && (
-                        <div className="text-xs text-red-600">No matching center in Org Hierarchy</div>
+                        <div className="text-xs text-red-600 dark:text-red-400">No matching center in Org Hierarchy</div>
                       )}
                     </td>
                     <td className="py-2 pr-4">{r.proposed_manager_name ?? '—'}</td>
                     <td className="py-2 pr-4">{r.proposed_manager_npid ?? '—'}</td>
                     <td className="py-2 pr-4">{r.proposed_manager_email ?? '—'}</td>
-                    <td className="py-2 pr-4 text-xs text-slate-500">{r.source}</td>
+                    <td className="py-2 pr-4 text-xs text-slate-500 dark:text-slate-400">{r.source}</td>
                     <td className="py-2 pr-4">
                       <div className="flex gap-2">
                         <button
                           disabled={approveMutation.isPending || r.org_node_id == null}
-                          className="text-xs font-medium text-brand-600 hover:text-brand-400 disabled:opacity-50"
+                          className="text-xs font-medium text-brand-600 hover:text-brand-700 disabled:opacity-50 dark:text-neon-400 dark:hover:text-neon-300"
                           onClick={() => approveMutation.mutate(r.id)}
                           title={r.org_node_id == null ? 'Fix the center in Org Hierarchy first' : undefined}
                         >
@@ -757,7 +1228,7 @@ function ContactChangeNotificationsTab() {
                         </button>
                         <button
                           disabled={rejectMutation.isPending}
-                          className="text-xs font-medium text-slate-500 hover:text-slate-200 disabled:opacity-50"
+                          className="text-xs font-medium text-slate-500 hover:text-slate-800 disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-200"
                           onClick={() => rejectMutation.mutate(r.id)}
                         >
                           Reject
@@ -769,6 +1240,237 @@ function ContactChangeNotificationsTab() {
               </tbody>
             </table>
           </div>
+        )}
+      </CardBody>
+    </Card>
+  )
+}
+
+/** Aggregates a list of per-center breakdown rows into one rollup row per
+ * distinct key (zone or cluster) -- "Unknown" groups centers whose Org
+ * Master link hasn't been placed in that dimension yet, rather than
+ * dropping them silently. */
+function rollupDcbBreakdown(
+  rows: DcbCenterBreakdown[],
+  keyFn: (r: DcbCenterBreakdown) => string,
+): { key: string; centerCount: number; thisBatchBills: number; allTimeConsidered: number; allTimeNotConsidered: number; repeatCentersCount: number }[] {
+  const groups = new Map<string, { key: string; centerCount: number; thisBatchBills: number; allTimeConsidered: number; allTimeNotConsidered: number; repeatCentersCount: number }>()
+  for (const r of rows) {
+    const key = keyFn(r) || 'Unknown'
+    const g = groups.get(key) ?? { key, centerCount: 0, thisBatchBills: 0, allTimeConsidered: 0, allTimeNotConsidered: 0, repeatCentersCount: 0 }
+    g.centerCount += 1
+    g.thisBatchBills += r.this_batch_bill_count
+    g.allTimeConsidered += r.all_time_considered_count
+    g.allTimeNotConsidered += r.all_time_not_considered_count
+    if (r.all_time_batch_count > 1) g.repeatCentersCount += 1
+    groups.set(key, g)
+  }
+  return Array.from(groups.values()).sort((a, b) => b.thisBatchBills - a.thisBatchBills)
+}
+
+function DcbRollupSection({
+  title,
+  rows,
+}: {
+  title: string
+  rows: { key: string; centerCount: number; thisBatchBills: number; allTimeConsidered: number; allTimeNotConsidered: number; repeatCentersCount: number }[]
+}) {
+  if (rows.length === 0) return null
+  return (
+    <div>
+      <h4 className="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-200">{title}</h4>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
+            <tr>
+              <th className="py-2 pr-4">{title.replace('By ', '')}</th>
+              <th className="py-2 pr-4">Centers</th>
+              <th className="py-2 pr-4">This Batch's Bills</th>
+              <th className="py-2 pr-4">Repeat Centers</th>
+              <th className="py-2 pr-4">All-Time Considered</th>
+              <th className="py-2 pr-4">All-Time Not Considered</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+            {rows.map((r) => (
+              <tr key={r.key}>
+                <td className="py-2 pr-4 font-medium">{r.key}</td>
+                <td className="py-2 pr-4">{r.centerCount}</td>
+                <td className="py-2 pr-4">{r.thisBatchBills}</td>
+                <td className="py-2 pr-4">{r.repeatCentersCount}</td>
+                <td className="py-2 pr-4">{r.allTimeConsidered}</td>
+                <td className="py-2 pr-4">{r.allTimeNotConsidered}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function DcbBatchDashboard({ batchId, onClose }: { batchId: number; onClose: () => void }) {
+  const { showToast } = useToast()
+
+  const { data: summary, isLoading, error } = useQuery({
+    queryKey: ['dcb-batch-summary', batchId],
+    queryFn: () => getBatchSummary(batchId),
+  })
+  const { data: centers } = useQuery({
+    queryKey: ['dcb-centers-breakdown', batchId],
+    queryFn: () => getBatchCentersBreakdown(batchId),
+  })
+
+  const exportMutation = useMutation({
+    mutationFn: () => downloadBatchExport(batchId),
+    onError: (err) => showToast(apiErrorMessage(err, 'Export failed'), 'error'),
+  })
+
+  const byZone = centers ? rollupDcbBreakdown(centers, (r) => r.zone ?? 'Unknown') : []
+  const byCluster = centers ? rollupDcbBreakdown(centers, (r) => r.cluster ?? 'Unknown') : []
+  const unresolvedCount = centers?.filter((r) => !r.zone && !r.cluster).length ?? 0
+
+  return (
+    <Card>
+      <CardHeader
+        title={summary ? `Batch #${batchId} -- Dashboard` : `Batch #${batchId} -- Dashboard`}
+        actions={
+          <div className="flex gap-2">
+            <Tooltip text="Downloads this batch's full Data + Penalty workbook as an Excel file.">
+              <Button variant="secondary" isLoading={exportMutation.isPending} onClick={() => exportMutation.mutate()}>
+                Export Workbook
+              </Button>
+            </Tooltip>
+            <Tooltip text="Hides this dashboard and returns to the batches list -- doesn't change any data.">
+              <button onClick={onClose} className="text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
+                Close panel
+              </button>
+            </Tooltip>
+          </div>
+        }
+      />
+      <CardBody className="space-y-6">
+        {isLoading && <Spinner />}
+        {error && <ErrorBanner message={apiErrorMessage(error)} />}
+        {summary && (
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <KpiCard
+                label="Total Bills"
+                value={<span className="inline-flex items-center gap-2"><ReceiptIcon className="h-5 w-5 text-slate-500 dark:text-vigilance-400" />{summary.total_bills}</span>}
+                tooltip="Every bill uploaded for this batch, regardless of review status."
+                to={`/delayed-cash?tab=review-queue&batch=${batchId}`}
+              />
+              <KpiCard
+                label="Pending Review"
+                value={summary.pending_review_count}
+                hint="No terminal verdict yet"
+                tooltip="Bills without a Considered/Not Considered verdict yet (includes Needs More Detail/Needs Proof) -- click to open the Review Queue, pre-filtered to this batch."
+                to={`/delayed-cash?tab=review-queue&batch=${batchId}`}
+              />
+              <KpiCard
+                label="Considered"
+                value={summary.considered_count}
+                hint="Accepted exception"
+                tooltip="Bills Vigilance marked Considered -- click to see them in Action Taken, pre-filtered to this batch and this decision."
+                to={`/delayed-cash?tab=action-taken&batch=${batchId}&decision=considered`}
+              />
+              <KpiCard
+                label="Not Considered"
+                value={summary.not_considered_count}
+                hint="Feeds validated penalty"
+                tooltip="Bills Vigilance marked Not Considered -- click to see them in Action Taken, pre-filtered to this batch and this decision."
+                to={`/delayed-cash?tab=action-taken&batch=${batchId}&decision=not_considered`}
+              />
+              <KpiCard
+                label="Needs More Detail"
+                value={summary.needs_more_detail_count}
+                tooltip="Vigilance kicked these back to the center for a follow-up -- not a financial decision yet."
+                to={`/delayed-cash?tab=review-queue&batch=${batchId}`}
+              />
+              <KpiCard
+                label="Needs Proof"
+                value={summary.needs_proof_count}
+                tooltip="Vigilance asked the center for supporting evidence specifically -- not a financial decision yet."
+                to={`/delayed-cash?tab=review-queue&batch=${batchId}`}
+              />
+              <KpiCard
+                label="Centers in Batch"
+                value={<span className="inline-flex items-center gap-2"><UsersIcon className="h-5 w-5 text-slate-500 dark:text-vigilance-400" />{summary.centers_in_batch}</span>}
+                tooltip="How many distinct centers have a bill in this batch."
+              />
+              <KpiCard
+                label="Total Calculated Penalty"
+                value={<span className="inline-flex items-center gap-2"><ChartIcon className="h-5 w-5 text-slate-500 dark:text-vigilance-400" />{formatMoney(summary.total_calculated_penalty)}</span>}
+                hint="Every bill, unfiltered by remark"
+                tooltip="Sum of day_difference x rate across every bill in this batch, before any remark is reviewed -- the publishing-stage total, per the proven formula."
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Centers -- Zone / Cluster / Repeat Non-Compliance</h4>
+              </div>
+              {centers && unresolvedCount > 0 && (
+                <p className="mb-3 text-xs text-amber-600 dark:text-amber-400">
+                  {unresolvedCount} of {centers.length} center(s) in this batch have no zone/cluster on record in the
+                  Org Master yet -- shown as "Unknown". Run the Centers Master sync (Org Hierarchy) to fix.
+                </p>
+              )}
+              {centers && centers.length > 0 && (
+                <div className="space-y-6">
+                  <DcbRollupSection title="By Zone" rows={byZone} />
+                  <DcbRollupSection title="By Cluster" rows={byCluster} />
+                  <div>
+                    <h4 className="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-200">All Centers in This Batch</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
+                          <tr>
+                            <th className="py-2 pr-4">Center</th>
+                            <th className="py-2 pr-4">Zone</th>
+                            <th className="py-2 pr-4">Cluster</th>
+                            <th className="py-2 pr-4">This Batch</th>
+                            <th className="py-2 pr-4">All-Time Batches Flagged</th>
+                            <th className="py-2 pr-4">All-Time Considered</th>
+                            <th className="py-2 pr-4">All-Time Not Considered</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                          {centers.map((r) => (
+                            <tr key={r.centre_code}>
+                              <td className="py-2 pr-4">
+                                {r.centre_code}
+                                <div className="text-xs text-slate-500 dark:text-slate-400">{r.centre_name}</div>
+                              </td>
+                              <td className="py-2 pr-4">{r.zone ?? <span className="text-slate-500 dark:text-slate-400">Unknown</span>}</td>
+                              <td className="py-2 pr-4">{r.cluster ?? <span className="text-slate-500 dark:text-slate-400">Unknown</span>}</td>
+                              <td className="py-2 pr-4">
+                                {r.this_batch_considered_count > 0 && <Badge tone="status">{`${r.this_batch_considered_count} considered`}</Badge>}{' '}
+                                {r.this_batch_not_considered_count > 0 && <Badge tone="status">{`${r.this_batch_not_considered_count} not considered`}</Badge>}{' '}
+                                {r.this_batch_pending_count > 0 && (
+                                  <span className="text-xs text-slate-500 dark:text-slate-400">{r.this_batch_pending_count} pending</span>
+                                )}
+                              </td>
+                              <td className="py-2 pr-4">
+                                <Tooltip text="How many distinct batches this center has had at least one bill in, all-time -- more than 1 means a repeat.">
+                                  <span className={r.all_time_batch_count > 1 ? 'font-medium text-amber-600 dark:text-amber-400' : ''}>
+                                    {r.all_time_batch_count}
+                                  </span>
+                                </Tooltip>
+                              </td>
+                              <td className="py-2 pr-4">{r.all_time_considered_count}</td>
+                              <td className="py-2 pr-4">{r.all_time_not_considered_count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </CardBody>
     </Card>
@@ -793,12 +1495,16 @@ function BatchCenterPenalties({ batchId, onClose }: { batchId: number; onClose: 
         title={`Batch #${batchId} -- Center Penalties`}
         actions={
           <div className="flex items-center gap-3">
-            <Button variant="secondary" isLoading={exportMutation.isPending} onClick={() => exportMutation.mutate()}>
-              Export Workbook
-            </Button>
-            <button onClick={onClose} className="text-xs font-medium text-slate-500 hover:text-slate-200">
-              Close
-            </button>
+            <Tooltip text="Downloads this batch's full Data + Penalty workbook as an Excel file, reproducing the reference format exactly.">
+              <Button variant="secondary" isLoading={exportMutation.isPending} onClick={() => exportMutation.mutate()}>
+                Export Workbook
+              </Button>
+            </Tooltip>
+            <Tooltip text="Hides this center list and returns to the batches list -- doesn't change any data.">
+              <button onClick={onClose} className="text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
+                Close
+              </button>
+            </Tooltip>
           </div>
         }
       />
@@ -809,7 +1515,7 @@ function BatchCenterPenalties({ batchId, onClose }: { batchId: number; onClose: 
         {data && data.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-xs uppercase text-slate-500">
+              <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="py-2 pr-4">Center Code</th>
                   <th className="py-2 pr-4">Center Name</th>
@@ -818,7 +1524,7 @@ function BatchCenterPenalties({ batchId, onClose }: { batchId: number; onClose: 
                   <th className="py-2 pr-4">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {data.map((cp) => (
                   <tr key={cp.id}>
                     <td className="py-2 pr-4">{cp.centre_code}</td>
@@ -922,18 +1628,18 @@ function UploadBatchModal({
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-400">Delayed Cash Bills Data workbook (.xlsx)</label>
+          <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">Delayed Cash Bills Data workbook (.xlsx)</label>
           <input ref={fileInputRef} type="file" accept=".xlsx,.xlsm" className="block w-full text-sm" />
         </div>
 
         {result && result.skipped_rows.length > 0 && (
-          <div className="rounded-md border border-amber-800 bg-amber-500/10 p-3">
-            <p className="mb-2 text-xs font-semibold text-amber-300">
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-500/10">
+            <p className="mb-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
               {result.skipped_rows.length} row(s) skipped -- never silently dropped, review below:
             </p>
             <div className="max-h-40 overflow-y-auto">
               <table className="w-full text-left text-xs">
-                <thead className="text-amber-300">
+                <thead className="text-amber-800 dark:text-amber-300">
                   <tr>
                     <th className="pr-3">Row</th>
                     <th>Reason</th>
@@ -978,16 +1684,16 @@ function PublishResultModal({ result, onClose }: { result: BatchPublishResult; o
   return (
     <Modal title={`Batch #${result.batch_id} -- Published Response Links`} onClose={onClose} wide>
       <div className="space-y-4">
-        <div className="rounded-md border border-vigilance-600/30 bg-vigilance-500/5 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-vigilance-400">
+        <div className="rounded-md border border-brand-200 bg-brand-50 p-3 dark:border-vigilance-600/30 dark:bg-vigilance-500/5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-600 dark:text-vigilance-400">
             One link for every center
           </p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             Send this single URL in one email to everyone -- each center manager picks their own center from a
             dropdown when they open it, and can only respond for that center.
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <code className="flex-1 truncate rounded border border-slate-800 bg-void-950 px-2 py-1.5 text-xs text-slate-300">
+            <code className="flex-1 truncate rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-void-950 dark:text-slate-300">
               {singleLinkUrl}
             </code>
             <Button type="button" variant="secondary" onClick={() => copy(singleLinkUrl)}>
@@ -996,30 +1702,30 @@ function PublishResultModal({ result, onClose }: { result: BatchPublishResult; o
           </div>
         </div>
 
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Individual per-center links (still work if you prefer sending separately). Publishing again always
           mints fresh tokens, invalidating these links.
         </p>
         <div className="max-h-96 overflow-y-auto">
           <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500">
+            <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
               <tr>
                 <th className="py-2 pr-4">Center</th>
                 <th className="py-2 pr-4">Response Link</th>
                 <th className="py-2 pr-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {result.links.map((link) => (
                 <tr key={link.center_penalty_id}>
                   <td className="py-2 pr-4">
                     {link.centre_code}
-                    <div className="text-xs text-slate-500">{link.centre_name}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{link.centre_name}</div>
                   </td>
-                  <td className="max-w-xs truncate py-2 pr-4 text-xs text-slate-500">{link.response_url}</td>
+                  <td className="max-w-xs truncate py-2 pr-4 text-xs text-slate-500 dark:text-slate-400">{link.response_url}</td>
                   <td className="py-2 pr-4">
                     <button
-                      className="text-xs font-medium text-brand-600 hover:text-brand-400"
+                      className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300"
                       onClick={() => copy(link.response_url)}
                     >
                       Copy

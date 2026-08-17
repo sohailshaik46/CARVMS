@@ -29,6 +29,15 @@ class User(Base):
         nullable=False,
     )
 
+    # Per-user mobile number -- where THIS user's own OTP (password reset)
+    # and disciplinary-escalation SMS alerts go, never a shared/org number.
+    # Nullable so existing rows created before this field don't break;
+    # new self-registrations require it (see schemas/auth.py UserRegister).
+    phone_number = Column(
+        String,
+        nullable=True,
+    )
+
     password_hash = Column(
         String,
         nullable=False,

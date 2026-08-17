@@ -19,9 +19,19 @@ This module is intentionally conservative:
   - Contact fields (manager_name/email/phone/npid) live on OrgNode directly
     (see app/models/org.py) rather than auto-creating CARVMS User logins --
     most of the people in this sheet never need to log into CARVMS.
-  - A genuine conflict (same zone reported under two different Half Country
-    Heads across rows) is reported, never silently resolved by "last write
-    wins" without saying so.
+  - A zone can legitimately be reported under more than one Half Country
+    Head across rows -- in practice a Half Country Head sometimes personally
+    covers as the acting Zonal Manager for a subset of a zone's centers.
+    This is expected, not a data error: the first Half Country Head seen for
+    a zone becomes that zone's nominal parent, and later rows naming a
+    different one are accepted silently rather than forked into a second
+    zone node or flagged for review.
+  - Some zones are reported as a shared base name with a distinguishing
+    suffix tacked on after a hyphen -- a numbered split ("North-1" /
+    "North-2") or a city/sub-region tag ("KA PPP - Bng" / "KA PPP -
+    Mysuru" / "KA PPP - Mangalore"). For CARVMS's own zone-level reporting
+    these are one zone, not several, so they collapse into their shared
+    base name (see `_normalize_zone_name`) rather than being kept separate.
 """
 
 import csv
@@ -33,6 +43,16 @@ from sqlalchemy.orm import Session
 
 from app.models.org import OrgDimension, OrgNode
 from app.services import org_service
+
+
+def _normalize_zone_name(raw_zone_name: str) -> str:
+    """Collapse a zone name to the base name before its first hyphen, e.g.
+    'North-1' -> 'North', 'KA PPP - Bng' -> 'KA PPP'. A name with no hyphen
+    at all is a genuinely standalone zone and is left completely untouched."""
+    if "-" not in raw_zone_name:
+        return raw_zone_name
+    base = raw_zone_name.split("-", 1)[0].strip()
+    return base or raw_zone_name
 
 # Column positions verified against a real sample of the sheet -- if the
 # sheet's own column order ever changes, this is the one place to fix it.
@@ -275,11 +295,12 @@ def sync_centers_master(db: Session, text: str, *, delimiter: str = ",") -> Sync
                 f"Dimension '{required}' does not exist -- run seed_default_dimensions_if_missing first"
             )
 
-    # Track what this sync has decided per zone, so a contradictory row
-    # later in the same file is a reported conflict, not a silent overwrite.
+    # Track the first Half Country Head seen per (normalized) zone name, so
+    # every row for that zone resolves to the SAME zone node regardless of
+    # which head a later row names -- see module docstring.
     zone_head_seen: dict[str, str] = {}
     half_country_nodes: dict[str, OrgNode] = {}
-    zone_nodes: dict[tuple[str, str], OrgNode] = {}  # (half_country_key, zone_name) -> node
+    zone_nodes: dict[str, OrgNode] = {}  # normalized zone_name -> node
     cluster_nodes: dict[tuple[int, str], OrgNode] = {}  # (zone_node_id, cluster_manager_name) -> node
 
     for row in parsed_rows:
@@ -315,19 +336,17 @@ def _sync_one_row(
         report.skipped.append(SkippedRow(row.row_number, f"{row.center_code}: no Zone -- cannot place in hierarchy", []))
         return
 
-    head_key = row.half_country_head or ""
-    prior_head = zone_head_seen.get(row.zone_name)
-    if prior_head is not None and head_key and prior_head != head_key:
-        report.conflicts.append(
-            DataConflict(
-                f"Zone '{row.zone_name}' appears under Half Country Head '{prior_head}' in one row and "
-                f"'{head_key}' in another (row {row.row_number}, {row.center_code}) -- kept the first, flagging for review."
-            )
-        )
-    elif head_key and prior_head is None:
-        zone_head_seen[row.zone_name] = head_key
+    zone_name = _normalize_zone_name(row.zone_name)
 
-    effective_head = zone_head_seen.get(row.zone_name) or None
+    head_key = row.half_country_head or ""
+    prior_head = zone_head_seen.get(zone_name)
+    if head_key and prior_head is None:
+        zone_head_seen[zone_name] = head_key
+    # A later row naming a different Half Country Head for the same zone is
+    # NOT a conflict (see module docstring) -- the first head seen simply
+    # stays the zone's nominal parent.
+
+    effective_head = zone_head_seen.get(zone_name) or None
 
     half_country_node = None
     if effective_head:
@@ -345,21 +364,31 @@ def _sync_one_row(
             if before == 0:
                 report.half_countries_created += 1
 
-    zone_key = (effective_head or "", row.zone_name)
-    zone_node = zone_nodes.get(zone_key)
+    zone_node = zone_nodes.get(zone_name)
     if zone_node is None:
-        parent_id = half_country_node.id if half_country_node else None
-        before = db.query(OrgNode).filter(
-            OrgNode.dimension_id == dims["zone"].id, OrgNode.parent_id == parent_id, OrgNode.name == row.zone_name
-        ).count()
-        zone_node = org_service.get_or_create_node(
-            db, dimension_id=dims["zone"].id, parent_id=parent_id, name=row.zone_name
+        # A zone name is unique across the whole org, not per Half Country
+        # Head -- look it up by name alone (any parent) so a zone created
+        # under one head in an earlier sync is reused here rather than
+        # forked into a second node just because this row's effective head
+        # (or a row's position in the file) differs. See module docstring.
+        zone_node = (
+            db.query(OrgNode)
+            .filter(OrgNode.dimension_id == dims["zone"].id, OrgNode.name == zone_name)
+            .first()
         )
-        zone_nodes[zone_key] = zone_node
-        if before == 0:
+        if zone_node is None:
+            parent_id = half_country_node.id if half_country_node else None
+            zone_node = org_service.create_node(
+                db, dimension_id=dims["zone"].id, parent_id=parent_id, name=zone_name, external_code=None
+            )
             report.zones_created += 1
-    if row.zonal_manager_name:
-        zone_node.manager_name = row.zonal_manager_name
+        zone_nodes[zone_name] = zone_node
+    # A row with no Zonal Manager of its own falls back to the Half Country
+    # Head acting in that capacity -- some centers are genuinely covered
+    # this way rather than by a dedicated Zonal Manager.
+    manager_name = row.zonal_manager_name or effective_head
+    if manager_name:
+        zone_node.manager_name = manager_name
     if row.zonal_mail:
         zone_node.manager_email = row.zonal_mail
     if row.zonal_phone:

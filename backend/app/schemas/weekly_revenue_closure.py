@@ -128,6 +128,25 @@ class BatchSummaryOut(BaseModel):
     total_role_penalty_rate: Decimal
 
 
+class CenterBreakdownOut(BaseModel):
+    """One center's presence in this batch, enriched with all-time history
+    for the repeat-non-compliance and considered/not-considered totals --
+    powers the "View centers" screen's raw table and its By Cluster/By Zone
+    rollups (computed client-side from this same list)."""
+
+    centre_code: str
+    centre_name: str
+    zone: Optional[str]
+    cluster: Optional[str]
+    this_batch_incident_count: int
+    this_batch_considered_count: int
+    this_batch_not_considered_count: int
+    this_batch_pending_count: int
+    all_time_batch_count: int
+    all_time_considered_count: int
+    all_time_not_considered_count: int
+
+
 # ---------- response portal (mirrors app/schemas/delayed_cash_billing.py) ----------
 
 

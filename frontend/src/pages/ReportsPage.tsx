@@ -10,6 +10,8 @@ import { HeroBanner } from '../components/ui/HeroBanner'
 import { ReportBarsIllustration } from '../components/ui/Illustrations'
 import { useToast } from '../components/ui/ToastProvider'
 import { apiErrorMessage } from '../lib/api'
+import { downloadAutoValidationExport } from '../lib/resources/autoValidation'
+import { downloadExport, type ExportFormat } from '../lib/resources/dashboard'
 import {
   createReportTemplate,
   deleteReportTemplate,
@@ -26,6 +28,78 @@ const FORMAT_LABELS: Record<ReportFormat, string> = {
   pdf: 'PDF',
   docx: 'Word',
   pptx: 'PPT',
+}
+
+/** Every report a specific page already knows how to export (Dashboard's
+ * CSV/Excel/PDF/Word/PPT buttons, the Auto Validation workbook), gathered
+ * here too so this is the one place to get any report -- without removing
+ * the in-context buttons on those pages themselves. */
+function QuickDownloadsCard() {
+  const [error, setError] = useState<string | null>(null)
+  const [running, setRunning] = useState<string | null>(null)
+
+  async function handleBillingExport(format: ExportFormat) {
+    setError(null)
+    setRunning(`billing-${format}`)
+    try {
+      await downloadExport(format, {})
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Export failed'))
+    } finally {
+      setRunning(null)
+    }
+  }
+
+  async function handleAutoValidationExport() {
+    setError(null)
+    setRunning('auto-validation')
+    try {
+      await downloadAutoValidationExport()
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Export failed'))
+    } finally {
+      setRunning(null)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader title="Quick Downloads" />
+      <CardBody className="space-y-4">
+        {error && <ErrorBanner message={error} />}
+        <div className="flex items-center justify-between gap-3 rounded border border-slate-200 p-3 dark:border-slate-700">
+          <div>
+            <p className="font-medium text-slate-800 dark:text-slate-200">Billing Compliance Export</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Every DCB bill + WRC incident, unfiltered -- same export the Dashboard's own buttons produce.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(['csv', 'xlsx', 'pdf', 'docx', 'pptx'] as ExportFormat[]).map((fmt) => (
+              <Button
+                key={fmt}
+                variant="secondary"
+                isLoading={running === `billing-${fmt}`}
+                onClick={() => handleBillingExport(fmt)}
+              >
+                {fmt.toUpperCase()}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded border border-slate-200 p-3 dark:border-slate-700">
+          <div>
+            <p className="font-medium text-slate-800 dark:text-slate-200">Auto Validation Report</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Every auto-validated remark, center/zone/cluster breakdown + repeat-instance counts, for both DCB and
+              WRC.
+            </p>
+          </div>
+          <Button variant="secondary" isLoading={running === 'auto-validation'} onClick={handleAutoValidationExport}>
+            Download Excel
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
+  )
 }
 
 export function ReportsPage() {
@@ -91,6 +165,8 @@ export function ReportsPage() {
       />
       {error && <ErrorBanner message={error} />}
 
+      <QuickDownloadsCard />
+
       <Card>
         <CardHeader title="Saved Templates" />
         <CardBody className="space-y-4">
@@ -101,11 +177,11 @@ export function ReportsPage() {
           {templates && templates.length > 0 && (
             <ul className="space-y-2">
               {templates.map((t) => (
-                <li key={t.id} className="rounded border border-slate-800 p-3">
+                <li key={t.id} className="rounded border border-slate-200 p-3 dark:border-slate-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-slate-200">{t.name}</p>
-                      {t.description && <p className="text-xs text-slate-500">{t.description}</p>}
+                      <p className="font-medium text-slate-800 dark:text-slate-200">{t.name}</p>
+                      {t.description && <p className="text-xs text-slate-500 dark:text-slate-400">{t.description}</p>}
                     </div>
                     <div className="flex items-center gap-2">
                       {REPORT_FORMATS.map((fmt) => (
@@ -147,7 +223,7 @@ export function ReportsPage() {
           {history && history.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="text-xs uppercase text-slate-500">
+                <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                   <tr>
                     <th className="py-2 pr-4">Name</th>
                     <th className="py-2 pr-4">Format</th>
@@ -156,20 +232,20 @@ export function ReportsPage() {
                     <th className="py-2 pr-4">Regenerate</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {history.map((h) => (
-                    <tr key={h.id}>
+                    <tr key={h.id} className="text-slate-800 dark:text-slate-100">
                       <td className="py-2 pr-4">
                         {h.name}
                         {h.regenerated_from_id && (
-                          <span className="ml-1 text-xs text-slate-500">(regenerated from #{h.regenerated_from_id})</span>
+                          <span className="ml-1 text-xs text-slate-500 dark:text-slate-400">(regenerated from #{h.regenerated_from_id})</span>
                         )}
                       </td>
                       <td className="py-2 pr-4 uppercase text-xs">{h.format}</td>
                       <td className="py-2 pr-4">
                         <Badge tone="status">{h.status}</Badge>
                       </td>
-                      <td className="py-2 pr-4 text-slate-500">{new Date(h.generated_at).toLocaleString()}</td>
+                      <td className="py-2 pr-4 text-slate-500 dark:text-slate-400">{new Date(h.generated_at).toLocaleString()}</td>
                       <td className="py-2 pr-4">
                         <Button
                           variant="ghost"
@@ -223,8 +299,8 @@ function NewTemplateForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 border-t border-slate-800 pt-4">
-      <p className="text-xs font-semibold uppercase text-slate-500">Save a new template</p>
+    <form onSubmit={handleSubmit} className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+      <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Save a new template</p>
       {error && <ErrorBanner message={error} />}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         <TextField id="tpl-name" label="Name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Monthly Vigilance Report" />

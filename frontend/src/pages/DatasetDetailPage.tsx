@@ -60,7 +60,7 @@ export function DatasetDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => navigate('/datasets')} className="text-sm text-slate-500 hover:text-slate-100">
+      <button onClick={() => navigate('/datasets')} className="text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100">
         ← Back to Datasets
       </button>
 
@@ -96,13 +96,15 @@ export function DatasetDetailPage() {
         </CardBody>
       </Card>
 
-      <div className="flex gap-2 border-b border-slate-800">
+      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
         {(['columns', 'anomalies', 'reconciliation'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-3 py-2 text-sm font-medium capitalize ${
-              tab === t ? 'border-b-2 border-brand-600 text-brand-300' : 'text-slate-500 hover:text-slate-200'
+              tab === t
+                ? 'border-b-2 border-brand-600 text-brand-700 dark:border-neon-500 dark:text-neon-400'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             {t}
@@ -114,7 +116,7 @@ export function DatasetDetailPage() {
         <Card>
           <CardBody>
             {(!columns || columns.length === 0) && (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {dataset.status === 'uploaded'
                   ? 'This file type is not tabular, so no column profile was generated.'
                   : 'No column data available.'}
@@ -123,7 +125,7 @@ export function DatasetDetailPage() {
             {columns && columns.length > 0 && (
               <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="text-xs uppercase text-slate-500">
+                <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                   <tr>
                     <th className="py-2 pr-4">Column</th>
                     <th className="py-2 pr-4">Type</th>
@@ -131,9 +133,9 @@ export function DatasetDetailPage() {
                     <th className="py-2 pr-4">Mapped dimension</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {columns.map((c) => (
-                    <tr key={c.id}>
+                    <tr key={c.id} className="text-slate-800 dark:text-slate-100">
                       <td className="py-2 pr-4 font-medium">{c.name}</td>
                       <td className="py-2 pr-4">{c.inferred_type}</td>
                       <td className="py-2 pr-4">{(c.null_rate * 100).toFixed(1)}%</td>
@@ -170,8 +172,8 @@ export function DatasetDetailPage() {
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <dt className="text-xs uppercase text-slate-500">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+      <dt className="text-xs uppercase text-slate-500 dark:text-slate-400">{label}</dt>
+      <dd className="font-medium text-slate-800 dark:text-slate-100">{value}</dd>
     </div>
   )
 }

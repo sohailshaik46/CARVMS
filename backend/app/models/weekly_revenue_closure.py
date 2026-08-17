@@ -318,6 +318,10 @@ class WeeklyRevenueCenterCase(Base):
     response_token = Column(String, unique=True, nullable=True, index=True)
     response_token_expires_at = Column(DateTime(timezone=True), nullable=True)
 
+    # See DelayedCashCenterPenalty.escalation_sms_sent_at -- same meaning,
+    # same "never reset once set" rule.
+    escalation_sms_sent_at = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
@@ -359,7 +363,23 @@ class WeeklyRevenueCaseResponse(Base):
     submitted_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     was_within_tat = Column(String, nullable=True)  # "within_window" | "overdue" | unknown (None)
 
+    # ---- auto-validation -- mirrors DelayedCashCaseResponse's fields exactly
+    # (see app/models/auto_validation.py and app/models/delayed_cash_billing.py
+    # for the full reasoning) ----
+    auto_bucket = Column(String, nullable=True)
+    auto_category = Column(String, nullable=True)
+    auto_matched_keyword = Column(String, nullable=True)
+    auto_decision_label = Column(String, nullable=True)
+    auto_reason = Column(Text, nullable=True)
+    auto_evaluated_at = Column(DateTime(timezone=True), nullable=True)
+
+    admin_override_bucket = Column(String, nullable=True)
+    admin_override_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    admin_override_at = Column(DateTime(timezone=True), nullable=True)
+    admin_override_note = Column(Text, nullable=True)
+
     case = relationship("WeeklyRevenueCenterCase", back_populates="responses")
+    admin_override_by = relationship("User", foreign_keys=[admin_override_by_id])
 
 
 class WeeklyRevenueCenterActivity(Base):

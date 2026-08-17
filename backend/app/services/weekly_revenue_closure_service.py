@@ -570,6 +570,81 @@ def get_batch_summary(db: Session, *, batch: WeeklyRevenueClosureBatch) -> Batch
 
 
 # ---------------------------------------------------------------------------
+# Per-center breakdown -- "View centers" for one batch, enriched with
+# ALL-TIME history (not just this batch) for cluster/zone rollups and
+# repeat-non-compliance tracking. zone/cluster are read straight off this
+# batch's own incident rows (uploaded verbatim from the source sheet, see
+# WeeklyRevenueBillIncident's model docstring) -- no Org Master dependency,
+# unlike Delayed Cash Billing's equivalent, which has no zone/cluster on the
+# bill itself and would need that lookup.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CenterBreakdown:
+    centre_code: str
+    centre_name: str
+    zone: Optional[str]
+    cluster: Optional[str]
+    this_batch_incident_count: int
+    this_batch_considered_count: int
+    this_batch_not_considered_count: int
+    this_batch_pending_count: int
+    # "Repeated non-compliance" -- how many DISTINCT batches (weeks) this
+    # center has appeared in with at least one incident, all-time, not a
+    # raw incident count (a center with 3 incidents in one week isn't
+    # "repeating", it's one occurrence; showing up across 3 separate weeks
+    # is).
+    all_time_batch_count: int
+    all_time_considered_count: int
+    all_time_not_considered_count: int
+
+
+def get_batch_centers_breakdown(db: Session, *, batch: WeeklyRevenueClosureBatch) -> list[CenterBreakdown]:
+    this_batch_incidents = (
+        db.query(WeeklyRevenueBillIncident).filter(WeeklyRevenueBillIncident.batch_id == batch.id).all()
+    )
+
+    by_center: dict[str, list[WeeklyRevenueBillIncident]] = {}
+    for incident in this_batch_incidents:
+        by_center.setdefault(incident.centre_code, []).append(incident)
+
+    results = []
+    for centre_code, incidents in by_center.items():
+        # zone/cluster/centre_name taken from this batch's own rows -- all
+        # incidents for one center in one batch carry the same values, so
+        # the first is as good as any.
+        first = incidents[0]
+
+        all_time_incidents = (
+            db.query(WeeklyRevenueBillIncident).filter(WeeklyRevenueBillIncident.centre_code == centre_code).all()
+        )
+        all_time_batch_ids = {i.batch_id for i in all_time_incidents}
+
+        results.append(
+            CenterBreakdown(
+                centre_code=centre_code,
+                centre_name=first.centre_name,
+                zone=first.zone,
+                cluster=first.cluster,
+                this_batch_incident_count=len(incidents),
+                this_batch_considered_count=sum(1 for i in incidents if i.considered == "considered"),
+                this_batch_not_considered_count=sum(1 for i in incidents if i.considered == "not_considered"),
+                this_batch_pending_count=sum(
+                    1 for i in incidents if i.considered is None and not i.moved_to_no_remark
+                ),
+                all_time_batch_count=len(all_time_batch_ids),
+                all_time_considered_count=sum(1 for i in all_time_incidents if i.considered == "considered"),
+                all_time_not_considered_count=sum(
+                    1 for i in all_time_incidents if i.considered == "not_considered"
+                ),
+            )
+        )
+
+    return sorted(results, key=lambda r: r.centre_code)
+
+
+# ---------------------------------------------------------------------------
 # Batch deletion -- mirrors delayed_cash_penalty_service.delete_batch's
 # reasoning exactly, but WRC has one extra wrinkle: WeeklyRevenueCenterCase
 # has NO relationship (and so no cascade) from WeeklyRevenueClosureBatch at

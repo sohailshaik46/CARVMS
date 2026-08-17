@@ -41,7 +41,7 @@ export function SearchPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-slate-100">Search results for "{query}"</h1>
+      <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Search results for "{query}"</h1>
 
       {isLoading && <Spinner />}
       {error && <ErrorBanner message={apiErrorMessage(error)} />}
@@ -52,19 +52,19 @@ export function SearchPage() {
           <Card key={type}>
             <CardHeader title={`${TYPE_LABELS[type]} (${items.length})`} />
             <CardBody>
-              <ul className="divide-y divide-slate-800">
+              <ul className="divide-y divide-slate-200 dark:divide-slate-700">
                 {items.map((item) => {
                   const href = linkFor(item)
                   return (
                     <li key={`${type}-${item.id}`} className="py-2">
                       {href ? (
-                        <Link to={href} className="font-medium text-brand-600 hover:underline">
+                        <Link to={href} className="font-medium text-np-calming-blue hover:underline dark:text-neon-blue-400">
                           {item.title}
                         </Link>
                       ) : (
-                        <span className="font-medium text-slate-200">{item.title}</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200">{item.title}</span>
                       )}
-                      {item.subtitle && <p className="text-xs text-slate-500">{item.subtitle}</p>}
+                      {item.subtitle && <p className="text-xs text-slate-500 dark:text-slate-400">{item.subtitle}</p>}
                     </li>
                   )
                 })}

@@ -5,6 +5,7 @@ from app.auth import roles
 from app.auth.dependencies import require_role
 from app.database.database import get_db
 from app.models.user import User
+from app.schemas.auth import PhoneNumberUpdateRequest
 from app.schemas.user import ActiveUpdateRequest, OrgNodeAssignRequest, RoleUpdateRequest, UserAdminOut
 from app.services import user_service
 from app.services.user_service import OrgNodeNotFoundError, SelfActionError
@@ -71,6 +72,17 @@ def update_active(
         )
     except SelfActionError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.patch("/{user_id}/phone", response_model=UserAdminOut)
+def update_user_phone(
+    user_id: int,
+    payload: PhoneNumberUpdateRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_role(roles.ADMIN)),
+):
+    target = _get_target_or_404(db, user_id)
+    return user_service.update_user_phone_number(db, target=target, phone_number=payload.phone_number, actor=admin)
 
 
 @router.patch("/{user_id}/org-node", response_model=UserAdminOut)

@@ -3,6 +3,7 @@ import { AppShell } from './layout/AppShell'
 import { RedirectIfAuthed, RequireAuth, RequireRole } from './auth/RouteGuards'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { DatasetsPage } from './pages/DatasetsPage'
 import { DatasetDetailPage } from './pages/DatasetDetailPage'
@@ -35,6 +36,14 @@ export default function App() {
         element={
           <RedirectIfAuthed>
             <RegisterPage />
+          </RedirectIfAuthed>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <RedirectIfAuthed>
+            <ForgotPasswordPage />
           </RedirectIfAuthed>
         }
       />

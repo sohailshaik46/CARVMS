@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.schemas.delayed_cash_billing import CaseResponseOut, PublicBillSummaryOut, PublicCaseOut, PublicOpenCaseOut
 from app.schemas.org import CenterDirectoryEntry
+from app.services import auto_validation_service
 from app.services import delayed_cash_penalty_service as calc_service
 from app.services import delayed_cash_response_service as response_service
 from app.services import org_sheet_sync_service
@@ -137,6 +138,10 @@ def respond(
     response_service.record_activity(
         db, centre_code=cp.centre_code, centre_name=cp.centre_name, center_penalty=cp, event_type="submitted"
     )
+    # Auto-validation runs the instant a center submits -- advisory only,
+    # never touches the bill's real `considered` decision. See
+    # auto_validation_service's module docstring.
+    auto_validation_service.evaluate_dcb_response(db, response=result)
     return result
 
 
@@ -180,4 +185,8 @@ def respond_by_id(
     response_service.record_activity(
         db, centre_code=cp.centre_code, centre_name=cp.centre_name, center_penalty=cp, event_type="submitted"
     )
+    # Auto-validation runs the instant a center submits -- advisory only,
+    # never touches the bill's real `considered` decision. See
+    # auto_validation_service's module docstring.
+    auto_validation_service.evaluate_dcb_response(db, response=result)
     return result

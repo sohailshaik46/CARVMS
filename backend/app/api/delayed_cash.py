@@ -25,6 +25,8 @@ from app.schemas.delayed_cash_billing import (
     BillReviewOut,
     CaseResponseOut,
     CenterActivityOut,
+    DcbBatchSummaryOut,
+    DcbCenterBreakdownOut,
     DelayedCashCenterPenaltyOut,
     DelayedCashRuleOut,
     ResponseLinkDetailOut,
@@ -112,6 +114,33 @@ def delete_batch(
     and why it can't just rely on ORM cascade."""
     batch = _get_batch_or_404(db, batch_id)
     calc_service.delete_batch(db, batch=batch)
+
+
+@router.get("/batches/{batch_id}/summary", response_model=DcbBatchSummaryOut)
+def get_batch_summary(
+    batch_id: int, db: Session = Depends(get_db), _user: User = Depends(require_role(*VIGILANCE_ROLES))
+):
+    """KPI aggregate for the batch dashboard -- mirrors WRC's own
+    /batches/{batch_id}/summary. See
+    delayed_cash_penalty_service.get_batch_summary for the exact numbers;
+    deliberately no zone/cluster breakdown yet (see that function's
+    docstring)."""
+    batch = _get_batch_or_404(db, batch_id)
+    summary = calc_service.get_batch_summary(db, batch=batch)
+    return DcbBatchSummaryOut(batch=UploadBatchOut.model_validate(batch), **summary.__dict__)
+
+
+@router.get("/batches/{batch_id}/centers-breakdown", response_model=list[DcbCenterBreakdownOut])
+def get_batch_centers_breakdown(
+    batch_id: int, db: Session = Depends(get_db), _user: User = Depends(require_role(*VIGILANCE_ROLES))
+):
+    """Every center with a bill in this batch, with zone/cluster (resolved
+    via the Org Master) plus all-time repeat-non-compliance and considered/
+    not-considered history -- see
+    delayed_cash_penalty_service.get_batch_centers_breakdown."""
+    batch = _get_batch_or_404(db, batch_id)
+    breakdown = calc_service.get_batch_centers_breakdown(db, batch=batch)
+    return [DcbCenterBreakdownOut(**b.__dict__) for b in breakdown]
 
 
 @router.get("/batches/{batch_id}/export.xlsx")

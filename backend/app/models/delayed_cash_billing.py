@@ -232,6 +232,14 @@ class DelayedCashCenterPenalty(Base):
     response_token = Column(String, unique=True, nullable=True, index=True)
     response_token_expires_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Set once an escalation SMS has actually gone out for this case's
+    # deadline having passed with no response -- see escalation_alert_service.
+    # Never reset: a center that later DOES respond keeps this set, since
+    # the alert already fired and re-alerting on the same deadline would be
+    # noise. Genuinely distinct from response_token_expires_at (that's the
+    # deadline itself; this is "did we already tell someone it passed").
+    escalation_sms_sent_at = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
@@ -292,7 +300,30 @@ class DelayedCashCaseResponse(Base):
     # retroactively if the deadline field is later adjusted.
     was_within_tat = Column(String, nullable=True)  # "within_window" | "overdue" | unknown (None)
 
+    # ---- auto-validation (advisory only -- see app/models/auto_validation.py) ----
+    # Set by auto_validation_service.evaluate_remark() against `reason` above,
+    # either right after submission or on a later manual re-run. Never sets
+    # DelayedCashBill.considered and never feeds the penalty calculation --
+    # Vigilance's own review-queue click remains the only official decision.
+    auto_bucket = Column(String, nullable=True)  # "considered" | "not_considered" | "manual_check"
+    auto_category = Column(String, nullable=True)
+    auto_matched_keyword = Column(String, nullable=True)
+    auto_decision_label = Column(String, nullable=True)
+    auto_reason = Column(Text, nullable=True)  # only populated for not_considered
+    auto_evaluated_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Vigilance can override the auto bucket from the Auto Validation tab --
+    # kept as a SEPARATE set of columns (never overwrites auto_bucket itself)
+    # so the original auto result stays visible for reporting even after a
+    # human corrects it. See auto_validation_service.override_dcb_response,
+    # which also writes an AuditLog row for the before/after trail.
+    admin_override_bucket = Column(String, nullable=True)
+    admin_override_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    admin_override_at = Column(DateTime(timezone=True), nullable=True)
+    admin_override_note = Column(Text, nullable=True)
+
     center_penalty = relationship("DelayedCashCenterPenalty", back_populates="responses")
+    admin_override_by = relationship("User", foreign_keys=[admin_override_by_id])
 
 
 class DelayedCashCenterActivity(Base):

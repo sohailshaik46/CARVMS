@@ -13,6 +13,7 @@ class UserAdminOut(BaseModel):
     role: str
     is_active: bool
     org_node_id: Optional[int]
+    phone_number: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

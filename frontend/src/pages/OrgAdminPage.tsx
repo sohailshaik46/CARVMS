@@ -73,19 +73,19 @@ export function OrgAdminPage() {
             {dimensions && (
               <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="text-xs uppercase text-slate-500">
+                <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                   <tr>
                     <th className="py-1 pr-4">Key</th>
                     <th className="py-1 pr-4">Label</th>
                     <th className="py-1 pr-4">Order</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {dimensions.map((d) => (
                     <tr key={d.id}>
-                      <td className="py-1 pr-4 font-mono text-xs">{d.key}</td>
-                      <td className="py-1 pr-4">{d.label}</td>
-                      <td className="py-1">{d.sort_order}</td>
+                      <td className="py-1 pr-4 font-mono text-xs text-slate-800 dark:text-slate-100">{d.key}</td>
+                      <td className="py-1 pr-4 text-slate-800 dark:text-slate-100">{d.label}</td>
+                      <td className="py-1 text-slate-800 dark:text-slate-100">{d.sort_order}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -104,11 +104,11 @@ export function OrgAdminPage() {
           <CardHeader title="Nodes" />
           <CardBody className="space-y-4">
             {nodesLoading && <Spinner />}
-            {nodes && nodes.length === 0 && <p className="text-sm text-slate-500">No nodes created yet.</p>}
+            {nodes && nodes.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400">No nodes created yet.</p>}
             {nodes && nodes.length > 0 && (
               <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="text-xs uppercase text-slate-500">
+                <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                   <tr>
                     <th className="py-1 pr-4">Name</th>
                     <th className="py-1 pr-4">Dimension</th>
@@ -118,7 +118,7 @@ export function OrgAdminPage() {
                     <th className="py-1 pr-4">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {nodes.map((n) => (
                     <NodeRow
                       key={n.id}
@@ -165,12 +165,12 @@ function NodeRow({
 
   return (
     <tr className={!node.is_active ? 'opacity-60' : undefined}>
-      <td className="py-1 pr-4">{node.name}</td>
-      <td className="py-1 pr-4 font-mono text-xs">{dimensionKey}</td>
-      <td className="py-1 pr-4 text-slate-500">{parentName}</td>
+      <td className="py-1 pr-4 text-slate-800 dark:text-slate-100">{node.name}</td>
+      <td className="py-1 pr-4 font-mono text-xs text-slate-800 dark:text-slate-100">{dimensionKey}</td>
+      <td className="py-1 pr-4 text-slate-500 dark:text-slate-400">{parentName}</td>
       <td className="py-1 pr-4">
         <input
-          className="w-28 rounded border border-slate-700 px-1.5 py-0.5 text-xs"
+          className="w-28 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-void-900 dark:text-slate-100"
           value={code}
           placeholder="—"
           onChange={(e) => setCode(e.target.value)}
@@ -184,7 +184,7 @@ function NodeRow({
       </td>
       <td className="py-1 pr-4">
         <button
-          className="text-xs font-medium text-brand-600 hover:underline disabled:cursor-not-allowed disabled:text-slate-400"
+          className="text-xs font-medium text-np-calming-blue hover:underline disabled:cursor-not-allowed disabled:text-slate-400 dark:text-neon-blue-400 dark:disabled:text-slate-500"
           disabled={isPending}
           onClick={() => onUpdate({ is_active: !node.is_active })}
         >
@@ -214,8 +214,8 @@ function NewDimensionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2 border-t border-slate-800 pt-3">
-      <p className="text-xs font-semibold uppercase text-slate-500">Add dimension</p>
+    <form onSubmit={handleSubmit} className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
+      <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Add dimension</p>
       <div className="grid grid-cols-3 gap-2">
         <TextField id="dim-key" label="Key" placeholder="e.g. district" pattern="^[a-z0-9_]+$" required value={key} onChange={(e) => setKey(e.target.value)} />
         <TextField id="dim-label" label="Label" placeholder="District" required value={label} onChange={(e) => setLabel(e.target.value)} />
@@ -260,8 +260,8 @@ function NewNodeForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2 border-t border-slate-800 pt-3">
-      <p className="text-xs font-semibold uppercase text-slate-500">Add node</p>
+    <form onSubmit={handleSubmit} className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
+      <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Add node</p>
       <div className="grid grid-cols-2 gap-2">
         <SelectField id="node-dim" label="Dimension" required value={dimensionId} onChange={(e) => setDimensionId(e.target.value ? Number(e.target.value) : '')}>
           <option value="">Select…</option>

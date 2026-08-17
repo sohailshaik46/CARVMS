@@ -174,7 +174,12 @@ def test_sync_flags_duplicate_center_name_under_same_cluster_without_aborting():
         db.close()
 
 
-def test_sync_reports_conflicting_half_country_head_for_same_zone():
+def test_sync_keeps_one_zone_when_half_country_head_differs_across_rows():
+    """A Half Country Head sometimes personally covers as the acting Zonal
+    Manager for a subset of a zone's centers -- so the same zone showing a
+    different Half Country Head on different rows is expected, not a
+    conflict. Both rows must land under ONE zone node (the first head seen
+    stays its nominal parent), and nothing gets flagged."""
     db = TestingSessionLocal()
     try:
         header = (
@@ -182,13 +187,83 @@ def test_sync_reports_conflicting_half_country_head_for_same_zone():
             "State\tCity\tHalf Country Head\tNABH\tQM\tZQM\tBME\tBMEMob\tClusterMail\tClusterPh\tZonalMail\tZonalPh\t"
             "Category\tIncharge\tNPID\tBabylonID\tCenterMail\tMobile\tClosedDate\n"
         )
-        row1 = "1\tCF-1\tCenter One\tHosp\tActive\tConflictZone\t\t\tMgrA\tZM1\t\t\tHeadA\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n"
-        row2 = "2\tCF-2\tCenter Two\tHosp\tActive\tConflictZone\t\t\tMgrA\tZM1\t\t\tHeadB\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n"
+        row1 = "1\tCF-1\tCenter One\tHosp\tActive\tSharedZone\t\t\tMgrA\tZM1\t\t\tHeadA\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n"
+        row2 = "2\tCF-2\tCenter Two\tHosp\tActive\tSharedZone\t\t\tMgrA\tZM1\t\t\tHeadB\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n"
         report = sync_svc.sync_centers_master(db, header + row1 + row2, delimiter="\t")
-        assert len(report.conflicts) == 1
-        assert "ConflictZone" in report.conflicts[0].description
-        assert "HeadA" in report.conflicts[0].description
-        assert "HeadB" in report.conflicts[0].description
+        assert report.conflicts == []
+        zones = db.query(OrgNode).filter(OrgNode.name == "SharedZone").all()
+        assert len(zones) == 1
+        head_a = db.query(OrgNode).filter(OrgNode.name == "HeadA").first()
+        assert zones[0].parent_id == head_a.id
+        c1 = org_service.get_node_by_external_code(db, "CF-1")
+        c2 = org_service.get_node_by_external_code(db, "CF-2")
+        assert c1.parent_id == c2.parent_id  # same cluster, therefore same zone
+    finally:
+        db.close()
+
+
+def test_sync_clubs_numbered_zone_splits_into_one_zone():
+    """'North-1' and 'North-2' are numbered splits of the same zone for
+    CARVMS's own reporting -- they must collapse into a single 'North'
+    zone node, not two separate ones."""
+    db = TestingSessionLocal()
+    try:
+        header = (
+            "S. No.\tCenter Code\tCenter Name\tHospital\tActive / Closed\tZone\tStart\tStatus\tCluster\tZM\t"
+            "State\tCity\tHalf Country Head\tNABH\tQM\tZQM\tBME\tBMEMob\tClusterMail\tClusterPh\tZonalMail\tZonalPh\t"
+            "Category\tIncharge\tNPID\tBabylonID\tCenterMail\tMobile\tClosedDate\n"
+        )
+        row1 = "1\tNZ-1\tCenter One\tHosp\tActive\tNorth-1\t\t\tMgrA\tAshu\t\t\tRajan\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n"
+        row2 = "2\tNZ-2\tCenter Two\tHosp\tActive\tNorth-2\t\t\tMgrB\tPraveen\t\t\tRajan\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n"
+        report = sync_svc.sync_centers_master(db, header + row1 + row2, delimiter="\t")
+        assert report.zones_created == 1
+        norths = db.query(OrgNode).filter(OrgNode.name.like("North%")).all()
+        assert [n.name for n in norths] == ["North"]
+        c1 = org_service.get_node_by_external_code(db, "NZ-1")
+        c2 = org_service.get_node_by_external_code(db, "NZ-2")
+        zone1 = db.query(OrgNode).filter(OrgNode.id == db.query(OrgNode).filter(OrgNode.id == c1.parent_id).first().parent_id).first()
+        zone2 = db.query(OrgNode).filter(OrgNode.id == db.query(OrgNode).filter(OrgNode.id == c2.parent_id).first().parent_id).first()
+        assert zone1.id == zone2.id == norths[0].id
+    finally:
+        db.close()
+
+
+def test_sync_clubs_city_suffixed_zone_splits_into_one_zone():
+    """'KA PPP - Bng' and 'KA PPP - Mysuru' are the same base zone with a
+    city tag appended -- they must collapse into a single 'KA PPP' zone,
+    same rule as the numbered North-1/North-2 case, not a special case."""
+    db = TestingSessionLocal()
+    try:
+        header = (
+            "S. No.\tCenter Code\tCenter Name\tHospital\tActive / Closed\tZone\tStart\tStatus\tCluster\tZM\t"
+            "State\tCity\tHalf Country Head\tNABH\tQM\tZQM\tBME\tBMEMob\tClusterMail\tClusterPh\tZonalMail\tZonalPh\t"
+            "Category\tIncharge\tNPID\tBabylonID\tCenterMail\tMobile\tClosedDate\n"
+        )
+        row1 = "1\tKP-1\tCenter One\tHosp\tActive\tKA PPP - Bng\t\t\tMgrA\tSudhakar\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n"
+        row2 = "2\tKP-2\tCenter Two\tHosp\tActive\tKA PPP - Mysuru\t\t\tMgrB\tSudhakar\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n"
+        report = sync_svc.sync_centers_master(db, header + row1 + row2, delimiter="\t")
+        assert report.zones_created == 1
+        zones = db.query(OrgNode).filter(OrgNode.name.like("KA PPP%")).all()
+        assert [z.name for z in zones] == ["KA PPP"]
+    finally:
+        db.close()
+
+
+def test_sync_falls_back_to_half_country_head_as_zonal_manager():
+    """When a row has no Zonal Manager of its own, the zone's manager_name
+    falls back to the Half Country Head -- some centers are genuinely
+    covered this way rather than by a dedicated Zonal Manager."""
+    db = TestingSessionLocal()
+    try:
+        header = (
+            "S. No.\tCenter Code\tCenter Name\tHospital\tActive / Closed\tZone\tStart\tStatus\tCluster\tZM\t"
+            "State\tCity\tHalf Country Head\tNABH\tQM\tZQM\tBME\tBMEMob\tClusterMail\tClusterPh\tZonalMail\tZonalPh\t"
+            "Category\tIncharge\tNPID\tBabylonID\tCenterMail\tMobile\tClosedDate\n"
+        )
+        row = "1\tHF-1\tCenter One\tHosp\tActive\tWestLike\t\t\tMgrA\t\t\t\tKrunal\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\n"
+        sync_svc.sync_centers_master(db, header + row, delimiter="\t")
+        zone = db.query(OrgNode).filter(OrgNode.name == "WestLike").first()
+        assert zone.manager_name == "Krunal"
     finally:
         db.close()
 

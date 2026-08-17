@@ -14,11 +14,10 @@ import { useToast } from '../components/ui/ToastProvider'
 import { apiErrorMessage } from '../lib/api'
 import { downloadExport, fetchDashboardSummary, type ExportFormat } from '../lib/resources/dashboard'
 import { createDashboardLayout, deleteDashboardLayout, listDashboardLayouts } from '../lib/resources/dashboardLayouts'
+import { getMyPreferences } from '../lib/resources/preferences'
 import { createReportTemplate } from '../lib/resources/reports'
+import { resolveVisibleKpis } from '../lib/dashboardKpis'
 import type { DashboardFilters } from '../lib/types'
-
-const currency = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
-const percent = (v: number | null) => (v === null ? '—' : `${v}%`)
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -36,6 +35,11 @@ export function DashboardPage() {
     queryFn: () => fetchDashboardSummary(filters),
   })
   const { data: layouts } = useQuery({ queryKey: ['dashboard-layouts'], queryFn: listDashboardLayouts })
+  // Which KPI cards show, and in what order -- set on Settings' Dashboard
+  // tab, saved server-side per user. Falls back to the full default set
+  // (undefined -> resolveVisibleKpis' own default) until that loads.
+  const { data: preferences } = useQuery({ queryKey: ['my-preferences'], queryFn: getMyPreferences })
+  const visibleKpis = resolveVisibleKpis(preferences?.dashboard_config?.visible_kpis)
 
   const deleteLayoutMutation = useMutation({
     mutationFn: (id: number) => deleteDashboardLayout(id),
@@ -162,40 +166,14 @@ export function DashboardPage() {
 
       {data && (
         <>
+          {/* Which cards, and in what order, comes from Settings ->
+              Dashboard (see resolveVisibleKpis) -- this loop is the only
+              place that renders a KPI card, so a hidden/reordered key here
+              is exactly what the user configured, nothing hardcoded. */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard
-              label="DCB Non-Compliance Rate"
-              value={percent(data.dcb.non_compliance_rate)}
-              hint={`${data.dcb.not_considered} of ${data.dcb.considered + data.dcb.not_considered} reviewed bills`}
-              to="/delayed-cash?tab=action-taken"
-            />
-            <KpiCard
-              label="WRC Non-Compliance Rate"
-              value={percent(data.wrc.non_compliance_rate)}
-              hint={`${data.wrc.not_considered} of ${data.wrc.considered + data.wrc.not_considered} reviewed incidents`}
-              to="/weekly-revenue-closure?tab=action-taken"
-            />
-            <KpiCard label="DCB Validated Penalty" value={currency.format(data.dcb.total_validated_penalty)} to="/delayed-cash?tab=batches" />
-            <KpiCard
-              label="WRC Penalty (Center + Role)"
-              value={currency.format(data.wrc.total_center_penalty + data.wrc.total_role_penalty)}
-              to="/weekly-revenue-closure?tab=batches"
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard
-              label="DCB Bills Awaiting Review"
-              value={data.dcb.unreviewed + data.dcb.needs_more_detail + data.dcb.needs_proof}
-              to="/delayed-cash?tab=review-queue"
-            />
-            <KpiCard label="WRC Incidents Awaiting Review" value={data.wrc.unreviewed} to="/weekly-revenue-closure?tab=review-queue" />
-            <KpiCard
-              label="Repeat SOP Violators"
-              value={data.repeated_centers.length}
-              hint={data.repeated_centers_truncated ? `showing top ${data.repeated_centers.length}` : undefined}
-              to="/center-rankings"
-            />
-            <KpiCard label="Zones with Non-Compliance" value={data.zone_breakdown.length} to="/center-rankings" />
+            {visibleKpis.map((kpi) => (
+              <KpiCard key={kpi.key} label={kpi.label} value={kpi.value(data)} hint={kpi.hint?.(data)} to={kpi.to} />
+            ))}
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -203,7 +181,7 @@ export function DashboardPage() {
               <CardHeader title="Non-Compliant Centers by Cluster" />
               <CardBody>
                 {data.cluster_breakdown.length === 0 ? (
-                  <p className="text-sm text-slate-500">No non-compliant centers in scope for these filters.</p>
+                  <p className="text-sm text-slate-400">No non-compliant centers in scope for these filters.</p>
                 ) : (
                   <PieChartWidget
                     data={data.cluster_breakdown.map((c) => ({ label: c.cluster, value: c.non_compliant_center_count }))}
@@ -215,7 +193,7 @@ export function DashboardPage() {
               <CardHeader title="Non-Compliant Centers by Zone" />
               <CardBody>
                 {data.zone_breakdown.length === 0 ? (
-                  <p className="text-sm text-slate-500">No non-compliant centers in scope for these filters.</p>
+                  <p className="text-sm text-slate-400">No non-compliant centers in scope for these filters.</p>
                 ) : (
                   <HorizontalBarChart data={data.zone_breakdown.map((z) => ({ label: z.zone, value: z.non_compliant_center_count }))} />
                 )}
@@ -227,7 +205,7 @@ export function DashboardPage() {
             <CardHeader title="Repeat SOP Violators" />
             <CardBody>
               {data.repeated_centers.length === 0 ? (
-                <p className="text-sm text-slate-500">No center has 2+ not-considered verdicts in scope for these filters.</p>
+                <p className="text-sm text-slate-400">No center has 2+ not-considered verdicts in scope for these filters.</p>
               ) : (
                 <HorizontalBarChart
                   data={recordToBarData(
@@ -264,11 +242,11 @@ function LiveClock() {
   }, [])
 
   return (
-    <div className="mt-1 shrink-0 rounded-md border border-slate-800 bg-void-950 px-3 py-1.5 text-right">
+    <div className="mt-1 shrink-0 rounded-md border border-slate-700 bg-void-950 px-3 py-1.5 text-right">
       <p className="text-sm font-semibold tabular-nums text-neon-400">
         {now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
       </p>
-      <p className="text-[11px] text-slate-500">{now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+      <p className="text-[11px] text-slate-400">{now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
     </div>
   )
 }
@@ -336,14 +314,14 @@ function PendingTasksPanel() {
           </Button>
         </form>
         {tasks.length === 0 ? (
-          <p className="text-sm text-slate-500">Nothing pending -- add a task above to track it here.</p>
+          <p className="text-sm text-slate-400">Nothing pending -- add a task above to track it here.</p>
         ) : (
           <ul className="space-y-1">
             {tasks.map((t) => (
-              <li key={t.id} className="flex items-center gap-2 rounded border border-slate-800 px-2 py-1.5 text-sm">
+              <li key={t.id} className="flex items-center gap-2 rounded border border-slate-700 px-2 py-1.5 text-sm">
                 <input type="checkbox" checked={t.done} onChange={() => toggleTask(t.id)} />
                 <span className={`flex-1 ${t.done ? 'text-slate-600 line-through' : 'text-slate-200'}`}>{t.text}</span>
-                <button type="button" className="text-xs text-slate-500 hover:text-red-400" onClick={() => removeTask(t.id)}>
+                <button type="button" className="text-xs text-slate-400 hover:text-neon-pink-400" onClick={() => removeTask(t.id)}>
                   Remove
                 </button>
               </li>
@@ -381,7 +359,7 @@ function SaveTemplateModal({ filters, onClose }: { filters: DashboardFilters; on
     <Modal title="Save Current Filters as Report Template" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <ErrorBanner message={error} />}
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           Saves the filters currently applied above (from: {filters.period_from ?? '—'}, to: {filters.period_to ?? '—'})
           as a reusable report template.
         </p>
@@ -435,7 +413,7 @@ function SaveLayoutModal({ filters, onClose }: { filters: DashboardFilters; onCl
     <Modal title="Save as Dashboard Layout" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && <ErrorBanner message={error} />}
-        <p className="text-xs text-slate-500">Saves the current period filter as a reusable named view.</p>
+        <p className="text-xs text-slate-400">Saves the current period filter as a reusable named view.</p>
         <TextField id="save-layout-name" label="Name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. July Review" />
         <TextField id="save-layout-desc" label="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
 

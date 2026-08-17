@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { useIdleLogout } from '../auth/useIdleLogout'
+import { useTheme } from '../theme/ThemeContext'
 import { Badge } from '../components/ui/Badge'
 import {
   BuildingIcon,
@@ -15,7 +17,8 @@ import {
   TrophyIcon,
   UsersIcon,
 } from '../components/ui/Icons'
-import nephroplusLogo from '../assets/nephroplus-logo-dark.svg'
+import nephroplusLogoLight from '../assets/nephroplus-logo.svg'
+import nephroplusLogoDark from '../assets/nephroplus-logo-dark.svg'
 import type { Role } from '../lib/types'
 
 interface NavItem {
@@ -40,8 +43,10 @@ const NAV_ITEMS: NavItem[] = [
 
 export function AppShell() {
   const { user, logout } = useAuth()
+  const { theme } = useTheme()
   const navigate = useNavigate()
   const [searchInput, setSearchInput] = useState('')
+  useIdleLogout()
 
   function handleSearchSubmit(e: FormEvent) {
     e.preventDefault()
@@ -51,13 +56,13 @@ export function AppShell() {
   }
 
   return (
-    <div className="dark flex h-full min-h-screen w-full bg-void-950">
-      <aside className="vigilance-grid flex w-60 flex-col border-r border-vigilance-600/15 bg-void-900">
-        <div className="border-b border-vigilance-600/15 px-4 py-4">
+    <div className={`${theme === 'dark' ? 'dark ' : ''}flex h-full min-h-screen w-full bg-slate-50 dark:bg-void-950`}>
+      <aside className="vigilance-grid flex w-60 flex-col border-r border-slate-200 bg-white dark:border-vigilance-600/15 dark:bg-void-900">
+        <div className="border-b border-slate-200 px-4 py-4 dark:border-vigilance-600/15">
           <div className="flex items-center gap-2.5">
-            <img src={nephroplusLogo} alt="NephroPlus" className="h-6 w-auto" />
+            <img src={theme === 'dark' ? nephroplusLogoDark : nephroplusLogoLight} alt="NephroPlus" className="h-6 w-auto" />
             <div>
-              <p className="text-sm font-semibold text-slate-100">Billing Data Validation</p>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Billing Data Validation</p>
             </div>
           </div>
         </div>
@@ -72,8 +77,8 @@ export function AppShell() {
                 className={({ isActive }) =>
                   `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-neon-500/10 text-neon-400 ring-1 ring-inset ring-neon-500/40 shadow-[0_0_12px_rgba(18,230,115,0.12)]'
-                      : 'text-slate-400 hover:bg-void-800 hover:text-vigilance-300'
+                      ? 'bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200 dark:bg-neon-500/10 dark:text-neon-400 dark:ring-neon-500/40 dark:shadow-[0_0_12px_rgba(18,230,115,0.12)]'
+                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-void-800 dark:hover:text-vigilance-300'
                   }`
                 }
               >
@@ -83,33 +88,33 @@ export function AppShell() {
             )
           })}
         </nav>
-        <div className="border-t border-vigilance-600/15 p-3">
-          <p className="px-1 text-[11px] text-slate-500">Every action is logged. Vigilance sees everything.</p>
+        <div className="border-t border-slate-200 p-3 dark:border-vigilance-600/15">
+          <p className="px-1 text-[11px] text-slate-500 dark:text-slate-400">Every action is logged. Vigilance sees everything.</p>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-vigilance-600/15 bg-void-900 px-6 py-3">
+        <header className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-3 dark:border-vigilance-600/15 dark:bg-void-900">
           <form onSubmit={handleSearchSubmit} className="w-full max-w-sm">
             <div className="relative">
-              <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search bills, incidents, datasets…"
-                className="w-full rounded-md border border-vigilance-600/25 bg-void-950 py-1.5 pl-8 pr-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-neon-500 focus:outline focus:outline-2 focus:outline-neon-500/25"
+                className="w-full rounded-md border border-slate-300 bg-slate-50 py-1.5 pl-8 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:outline focus:outline-2 focus:outline-brand-500/25 dark:border-vigilance-600/25 dark:bg-void-950 dark:text-slate-100 dark:focus:border-neon-500 dark:focus:outline-neon-500/25"
               />
             </div>
           </form>
           <div className="flex shrink-0 items-center gap-3">
             {user && (
               <>
-                <span className="text-sm text-slate-300">{user.username}</span>
+                <span className="text-sm text-slate-600 dark:text-slate-300">{user.username}</span>
                 <Badge>{user.role}</Badge>
                 <button
                   onClick={logout}
-                  className="flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-neon-400"
+                  className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-neon-400"
                 >
                   <LogoutIcon className="h-4 w-4" /> Log out
                 </button>
@@ -117,7 +122,7 @@ export function AppShell() {
             )}
           </div>
         </header>
-        <main className="min-w-0 flex-1 overflow-y-auto bg-void-950 p-6">
+        <main className="min-w-0 flex-1 overflow-y-auto bg-slate-50 p-6 dark:bg-void-950">
           <Outlet />
         </main>
       </div>

@@ -19,17 +19,25 @@ export function HorizontalBarChart({
   data,
   height,
   valueFormatter,
+  domain,
 }: {
   data: BarDatum[]
   height?: number
   valueFormatter?: (v: number) => string
+  /** Fixes the X-axis scale (e.g. [0, 100] for a percentage/score) instead
+   * of letting recharts auto-derive it from the data's own min/max --
+   * without this, a chart where every value happens to be equal (or close
+   * together) renders every bar fully filled, which reads as "everyone's
+   * at 100%" even when the true scale starts at 0. Omit for count-based
+   * charts where auto-scaling to the data is correct. */
+  domain?: [number, number]
 }) {
   if (data.length === 0) return null
   const rowHeight = 34
   return (
     <ResponsiveContainer width="100%" height={height ?? Math.max(120, data.length * rowHeight)}>
       <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 4 }} barCategoryGap={10}>
-        <XAxis type="number" hide />
+        <XAxis type="number" hide domain={domain} />
         <YAxis
           type="category"
           dataKey="label"

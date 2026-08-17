@@ -35,11 +35,11 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center text-center lg:hidden">
           <img src={nephroplusLogo} alt="NephroPlus" className="h-8 w-auto" />
-          <h1 className="mt-3 text-lg font-semibold text-slate-100">Billing Data Validation</h1>
+          <h1 className="mt-3 text-lg font-semibold text-slate-900 dark:text-slate-100">Billing Data Validation</h1>
         </div>
 
-        <div className="rounded-lg border border-vigilance-600/20 bg-void-900 p-6 shadow-lg shadow-black/40">
-          <p className="text-sm text-slate-400">Sign in to continue</p>
+        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-vigilance-600/20 dark:bg-void-900 dark:shadow-lg dark:shadow-black/40">
+          <p className="text-sm text-slate-600 dark:text-slate-400">Sign in to continue</p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {error && <ErrorBanner message={error} />}
@@ -65,14 +65,23 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-4 text-center text-sm text-slate-400">
+          <p className="mt-3 text-center text-sm">
+            <Link
+              to="/forgot-password"
+              className="font-medium text-np-calming-blue hover:underline dark:text-neon-blue-400"
+            >
+              Forgot password?
+            </Link>
+          </p>
+
+          <p className="mt-4 text-center text-sm text-slate-600 dark:text-slate-400">
             Don't have an account?{' '}
-            <Link to="/register" className="font-medium text-brand-400 hover:underline">
+            <Link to="/register" className="font-medium text-np-calming-blue hover:underline dark:text-neon-blue-400">
               Register
             </Link>
           </p>
         </div>
-        <p className="mt-4 text-center text-xs text-slate-600">Every action is logged. Vigilance sees everything.</p>
+        <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-600">Every action is logged. Vigilance sees everything.</p>
       </div>
     </AuthShell>
   )

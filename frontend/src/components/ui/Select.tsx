@@ -68,7 +68,7 @@ function parseOptions(children: ReactNode): ParsedOption[] {
   return options
 }
 
-const NEON_HOVER = 'hover:bg-neon-500 hover:text-void-950'
+const NEON_HOVER = 'dark:hover:bg-neon-500 dark:hover:text-void-950'
 
 export function Select({ id, value, disabled, className = '', onChange, name, children, ...rest }: SelectProps) {
   const [open, setOpen] = useState(false)
@@ -146,19 +146,19 @@ export function Select({ id, value, disabled, className = '', onChange, name, ch
         onKeyDown={onTriggerKeyDown}
         className={`flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
           open
-            ? 'border-neon-500 bg-void-900 text-slate-100 outline outline-2 outline-neon-500/25'
-            : 'border-slate-700 bg-void-900 text-slate-100 hover:border-vigilance-500/50'
+            ? 'border-brand-500 bg-white text-slate-800 outline outline-2 outline-brand-500/25 dark:border-neon-500 dark:bg-void-900 dark:text-slate-100 dark:outline-neon-500/25'
+            : 'border-slate-300 bg-white text-slate-800 hover:border-slate-400 dark:border-slate-700 dark:bg-void-900 dark:text-slate-100 dark:hover:border-vigilance-500/50'
         } ${className}`}
       >
-        <span className="truncate">{selected ? selected.label : <span className="text-slate-500">Select...</span>}</span>
-        <ChevronDownIcon className={`h-4 w-4 shrink-0 text-vigilance-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="truncate">{selected ? selected.label : <span className="text-slate-400 dark:text-slate-500">Select...</span>}</span>
+        <ChevronDownIcon className={`h-4 w-4 shrink-0 text-slate-400 transition-transform dark:text-vigilance-400 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
         <ul
           ref={listRef}
           role="listbox"
-          className="absolute z-50 mt-1.5 max-h-64 w-full min-w-max overflow-y-auto rounded-md border border-vigilance-600/30 bg-void-950 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_0_1px_rgba(217,169,74,0.08)]"
+          className="absolute z-50 mt-1.5 max-h-64 w-full min-w-max overflow-y-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-vigilance-600/30 dark:bg-void-950 dark:shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_0_1px_rgba(217,169,74,0.08)]"
         >
           {options.map((opt, i) => {
             const isSelected = opt.value === String(value ?? '')
@@ -171,22 +171,22 @@ export function Select({ id, value, disabled, className = '', onChange, name, ch
                 onClick={() => !opt.disabled && commit(opt.value)}
                 className={`flex items-center justify-between gap-2 px-3 py-1.5 text-sm transition-colors ${
                   opt.disabled
-                    ? 'cursor-not-allowed text-slate-600'
-                    : `cursor-pointer ${NEON_HOVER} ${
+                    ? 'cursor-not-allowed text-slate-400 dark:text-slate-600'
+                    : `cursor-pointer hover:bg-brand-50 hover:text-brand-700 ${NEON_HOVER} ${
                         isHighlighted
-                          ? 'bg-neon-500 text-void-950 font-medium'
+                          ? 'bg-brand-50 text-brand-700 font-medium dark:bg-neon-500 dark:text-void-950'
                           : isSelected
-                            ? 'text-vigilance-300'
-                            : 'text-slate-200'
+                            ? 'text-brand-600 dark:text-vigilance-300'
+                            : 'text-slate-700 dark:text-slate-200'
                       }`
                 }`}
               >
                 <span className="truncate">{opt.label}</span>
-                {isSelected && !isHighlighted && <CheckIcon className="h-3.5 w-3.5 shrink-0 text-vigilance-400" />}
+                {isSelected && !isHighlighted && <CheckIcon className="h-3.5 w-3.5 shrink-0 text-brand-600 dark:text-vigilance-400" />}
               </li>
             )
           })}
-          {options.length === 0 && <li className="px-3 py-1.5 text-sm text-slate-500">No options</li>}
+          {options.length === 0 && <li className="px-3 py-1.5 text-sm text-slate-400 dark:text-slate-500">No options</li>}
         </ul>
       )}
     </div>

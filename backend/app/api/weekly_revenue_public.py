@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.schemas.org import CenterDirectoryEntry
 from app.schemas.weekly_revenue_closure import CaseResponseOut, PublicCaseOut, PublicIncidentSummaryOut, PublicOpenCaseOut
+from app.services import auto_validation_service
 from app.services import org_sheet_sync_service
 from app.services import weekly_revenue_response_service as response_service
 
@@ -122,6 +123,7 @@ def respond(
     response_service.record_activity(
         db, centre_code=case.centre_code, centre_name=case.centre_name, case=case, event_type="submitted"
     )
+    auto_validation_service.evaluate_wrc_response(db, response=result)
     return result
 
 
@@ -162,4 +164,5 @@ def respond_by_id(
     response_service.record_activity(
         db, centre_code=case.centre_code, centre_name=case.centre_name, case=case, event_type="submitted"
     )
+    auto_validation_service.evaluate_wrc_response(db, response=result)
     return result

@@ -20,6 +20,9 @@ from app.api.delayed_cash import router as delayed_cash_router
 from app.api.delayed_cash_public import router as delayed_cash_public_router
 from app.api.weekly_revenue_closure import router as weekly_revenue_closure_router
 from app.api.weekly_revenue_public import router as weekly_revenue_public_router
+from app.api.auto_validation import router as auto_validation_router
+from app.api.user_preferences import router as user_preferences_router
+from app.api.escalations import router as escalations_router
 
 # Schema is managed by Alembic migrations (see alembic/), never by
 # Base.metadata.create_all() -- that call used to live here and would
@@ -58,6 +61,9 @@ app.include_router(delayed_cash_router)
 app.include_router(delayed_cash_public_router)
 app.include_router(weekly_revenue_closure_router)
 app.include_router(weekly_revenue_public_router)
+app.include_router(auto_validation_router)
+app.include_router(user_preferences_router)
+app.include_router(escalations_router)
 
 # /email/callback and /public/delayed-cash/* are public: reached directly by
 # a browser (Google's redirect; a center manager's emailed link) with no

@@ -40,7 +40,7 @@ export function DatasetsPage() {
           {data && data.length > 0 && (
             <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="text-xs uppercase text-slate-500">
+              <thead className="text-xs uppercase text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="py-2 pr-4">Name</th>
                   <th className="py-2 pr-4">Type</th>
@@ -51,11 +51,11 @@ export function DatasetsPage() {
                   <th className="py-2 pr-4">Version</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {data.map((ds) => (
-                  <tr key={ds.id} className="cursor-pointer hover:bg-slate-800" onClick={() => navigate(`/datasets/${ds.id}`)}>
+                  <tr key={ds.id} className="cursor-pointer text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-700" onClick={() => navigate(`/datasets/${ds.id}`)}>
                     <td className="py-2 pr-4">{ds.name}</td>
-                    <td className="py-2 pr-4 uppercase text-xs text-slate-500">{ds.source_type}</td>
+                    <td className="py-2 pr-4 uppercase text-xs text-slate-500 dark:text-slate-400">{ds.source_type}</td>
                     <td className="py-2 pr-4">
                       <Badge tone="status">{ds.status}</Badge>
                     </td>
@@ -112,7 +112,7 @@ function UploadDatasetModal({ onClose }: { onClose: () => void }) {
         {error && <ErrorBanner message={error} />}
         <TextField id="ds-name" label="Dataset name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. July Revenue Report" />
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-400">File (CSV, Excel, PDF, Word, PPTX, image)</label>
+          <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">File (CSV, Excel, PDF, Word, PPTX, image)</label>
           <input ref={fileInputRef} type="file" className="block w-full text-sm" />
         </div>
         <div className="flex justify-end gap-2">
