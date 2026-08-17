@@ -1,13 +1,24 @@
 ## Render Blueprint for CARVMS (Billing Data Validation).
 ##
-## Two free services: the FastAPI backend and the static-built React
-## frontend. See docs/DEPLOYMENT.md for the full step-by-step (creating the
-## Render account, connecting this repo, filling in the placeholder URLs
-## below after the first deploy, and the accepted risk of SQLite on an
-## ephemeral disk -- data can be lost on redeploy/restart on the free tier).
+## Two free web services (FastAPI backend, static-built React frontend)
+## plus a free managed Postgres database -- real persistent storage, not
+## the SQLite-on-ephemeral-disk setup this started on. Data now survives
+## redeploys/restarts. See docs/DEPLOYMENT.md for the full step-by-step
+## (creating the Render account, connecting this repo, filling in the
+## placeholder URLs below after the first deploy).
+##
+## Render's free Postgres plan expires after 30 days and must be upgraded
+## (~$7/month) or replaced to keep the data past that point -- see
+## docs/DEPLOYMENT.md.
 ##
 ## To use: on render.com, "New +" -> "Blueprint" -> connect this repo/branch
-## -> Render reads this file and proposes both services below.
+## -> Render reads this file and proposes the database + both services below.
+
+databases:
+  - name: carvms-db
+    plan: free
+    databaseName: carvms
+    user: carvms
 
 services:
   - type: web
@@ -16,9 +27,10 @@ services:
     plan: free
     rootDir: backend
     buildCommand: "pip install -r requirements.txt"
-    # alembic upgrade head runs the schema migrations against whatever
-    # DATABASE_URL points at (fresh SQLite file each deploy on the free
-    # plan -- see docs/DEPLOYMENT.md) before uvicorn starts.
+    # alembic upgrade head runs the schema migrations against the real
+    # Postgres database below (verified against the full migration chain
+    # offline before this was wired up -- see docs/DEPLOYMENT.md) before
+    # uvicorn starts.
     startCommand: "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /health
     envVars:
@@ -30,20 +42,26 @@ services:
       - key: SECRET_KEY
         generateValue: true
 
-      # SQLite on the free plan's ephemeral disk -- accepted risk for a
-      # first deploy (see docs/DEPLOYMENT.md). Point this at a real
-      # managed Postgres URL later to stop losing data on redeploy/restart.
+      # Real persistent Postgres -- Render fills this in automatically
+      # from the carvms-db database defined above, no manual copy-paste.
       - key: DATABASE_URL
-        value: "sqlite:///./carvms.db"
+        fromDatabase:
+          name: carvms-db
+          property: connectionString
 
-      # PLACEHOLDER -- after your first deploy, replace with your actual
-      # frontend URL (e.g. https://carvms-frontend.onrender.com, no
-      # trailing slash), then manually redeploy this service. Comma-
-      # separated if you ever need more than one origin.
+      # These are this deploy's REAL URLs (already live) -- not
+      # placeholders. Deliberately plain `value:` (not sync: false) so a
+      # Blueprint sync keeps them consistent automatically. If you ever
+      # fork this to a different Render account, service names that
+      # collide with someone else's get a random suffix appended to the
+      # URL -- check each service's actual dashboard page and update
+      # these (and VITE_API_BASE_URL below) to match before relying on
+      # login working. Comma-separated if you ever need more than one
+      # CORS origin.
       - key: CORS_ORIGINS
-        value: "http://localhost:5173"
+        value: "https://carvms-frontend.onrender.com"
       - key: FRONTEND_URL
-        value: "http://localhost:5173"
+        value: "https://carvms-frontend.onrender.com"
 
       - key: UPLOAD_DIR
         value: "uploads"
@@ -86,11 +104,11 @@ services:
       - key: NODE_VERSION
         value: "20"
 
-      # PLACEHOLDER -- after your first deploy, replace with your actual
-      # backend URL (e.g. https://carvms-backend.onrender.com, no trailing
-      # slash), then manually redeploy this service.
+      # This deploy's REAL backend URL (already live) -- see the identical
+      # comment on CORS_ORIGINS above for why this is a plain value and
+      # what to check if you ever fork this to a different Render account.
       - key: VITE_API_BASE_URL
-        value: "http://localhost:8000"
+        value: "https://carvms-backend.onrender.com"
 
     # Client-side routing (React Router) -- every path must fall back to
     # index.html so refreshing on e.g. /delayed-cash doesn't 404.

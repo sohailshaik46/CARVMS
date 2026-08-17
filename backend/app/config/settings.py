@@ -9,6 +9,7 @@ secret baked in as a default.
 
 from typing import Optional
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +23,18 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "sqlite:///./carvms.db"
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def _normalize_postgres_scheme(cls, v: str) -> str:
+        """Some Postgres hosts (Heroku-style, and occasionally Render's
+        own connection strings) hand out `postgres://...` -- SQLAlchemy
+        2.0 dropped support for that scheme and requires `postgresql://`.
+        Rewriting it here means DATABASE_URL can be pasted verbatim from
+        wherever the database lives without a manual edit."""
+        if v.startswith("postgres://"):
+            return "postgresql://" + v[len("postgres://"):]
+        return v
 
     # CORS - comma-separated origins
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"

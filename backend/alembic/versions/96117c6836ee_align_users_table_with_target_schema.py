@@ -50,8 +50,16 @@ def upgrade() -> None:
             existing_type=sa.VARCHAR(),
             type_=sa.Boolean(),
             existing_server_default=None,
-            server_default=sa.text('1'),
+            server_default=sa.true(),
             nullable=False,
+            # Postgres won't implicitly cast varchar -> boolean on a plain
+            # ALTER COLUMN TYPE; needs an explicit USING clause. The values
+            # are guaranteed to be exactly '1'/'0' at this point (the
+            # UPDATE above just normalized them), which Postgres's boolean
+            # input parser accepts directly. SQLite ignores this kwarg
+            # entirely (batch mode recreates the table there instead), so
+            # this is a no-op on that dialect -- safe on both.
+            postgresql_using="is_active::boolean",
         )
         batch_op.create_check_constraint('ck_users_role_valid', ROLE_CHECK_SQL)
 
@@ -64,6 +72,9 @@ def downgrade() -> None:
             existing_type=sa.Boolean(),
             type_=sa.VARCHAR(),
             nullable=True,
+            # Same reasoning as upgrade() above, reversed -- Postgres needs
+            # an explicit cast for boolean -> varchar too.
+            postgresql_using="is_active::varchar",
         )
         batch_op.drop_column('updated_at')
         batch_op.drop_column('created_at')

@@ -2,8 +2,9 @@
 
 This gets the app reachable from any laptop, anywhere -- not just this
 machine's local network. It uses [Render](https://render.com)'s free tier
-for both the backend (FastAPI) and frontend (the built React app), driven by
-the `render.yaml` Blueprint at the repo root.
+for the backend (FastAPI), the frontend (the built React app), and a real
+managed Postgres database, all driven by the `render.yaml` Blueprint at the
+repo root.
 
 **Read "Known limitations of this free setup" at the bottom before you rely
 on this for real data.**
@@ -31,7 +32,9 @@ won't and can't do on your behalf.
 2. Connect your GitHub account if asked, then pick the `CARVMS` repo.
 3. Pick the branch you pushed (`deploy/render-setup`, or `main` once you've
    merged).
-4. Render reads `render.yaml` and proposes two services:
+4. Render reads `render.yaml` and proposes a database plus two services:
+   - `carvms-db` (a real Postgres database -- persists across restarts,
+     unlike the SQLite this project started on)
    - `carvms-backend` (the API)
    - `carvms-frontend` (the web app you'll actually open in a browser)
 5. Before clicking **Apply**, fill in the three prompted fields (these have
@@ -44,28 +47,25 @@ won't and can't do on your behalf.
 
 ## 4. Wire the two services together
 
-`render.yaml` ships with placeholder URLs (`http://localhost:...`) for each
-service's env vars pointing at the other, because Render only assigns the
-real `https://carvms-backend-XXXX.onrender.com` / `https://carvms-frontend-
-XXXX.onrender.com` URLs once a service exists -- there's no way to know them
-before the first deploy. Fix this once, right after the first deploy:
+`render.yaml` already has this deploy's real URLs baked in
+(`CORS_ORIGINS`/`FRONTEND_URL` on the backend, `VITE_API_BASE_URL` on the
+frontend all point at `carvms-backend.onrender.com` /
+`carvms-frontend.onrender.com`) -- **for this specific deploy, there's
+nothing to do here.** This step only applies if you ever fork this to a
+*different* Render account:
 
-1. Open **carvms-backend** -> **Environment** tab. Note this service's own
-   URL, shown at the top of its dashboard page.
-2. Open **carvms-frontend** -> its dashboard page shows its own URL.
-3. Back in **carvms-backend** -> **Environment**, edit:
-   - `CORS_ORIGINS` -> the frontend's real URL (no trailing slash), e.g.
-     `https://carvms-frontend-ab12.onrender.com`
-   - `FRONTEND_URL` -> the same URL
-   Save -> this redeploys the backend automatically.
-4. In **carvms-frontend** -> **Environment**, edit:
-   - `VITE_API_BASE_URL` -> the backend's real URL, e.g.
-     `https://carvms-backend-cd34.onrender.com`
-   Save -> **this must trigger a rebuild, not just a restart** (Vite bakes
-   this value in at build time) -- Render does this automatically on an env
-   var change for static sites, but if the frontend still calls
-   `localhost:8000` after saving, use **Manual Deploy -> Clear build cache &
-   deploy** to force it.
+1. Open **carvms-backend**'s dashboard page and note its actual URL --
+   if `carvms-backend` was already taken by someone else's Render service,
+   yours got a random suffix appended (e.g. `carvms-backend-ab12.onrender.com`).
+2. Same for **carvms-frontend**.
+3. If either URL differs from what's in `render.yaml`, update
+   `CORS_ORIGINS`/`FRONTEND_URL` (on the backend) and `VITE_API_BASE_URL`
+   (on the frontend) in the Render dashboard's Environment tab for that
+   service, then save.
+4. The backend just needs a restart to pick this up. The frontend needs a
+   full **rebuild** since Vite bakes this value in at build time -- if
+   saving doesn't auto-trigger one, use **Manual Deploy -> Clear build
+   cache & deploy** to force it.
 
 ## 5. Log in and lock it down
 
@@ -87,22 +87,20 @@ works from any laptop with internet.
 
 ## Known limitations of this free setup
 
-You explicitly chose to start fully free and accept these for now -- keep
-them in mind:
-
-- **Data can be lost on redeploy or restart.** The backend stores data in a
-  SQLite file on local disk. Render's free web services have no persistent
-  disk, so that file resets to empty on every deploy and on every restart
-  (including the automatic restart after the free tier's idle sleep). This
-  is fine for a demo/trial; it is **not** safe for real ongoing billing/
-  penalty data. When you're ready to stop accepting this risk, either:
-  - Add a Render PostgreSQL database (free for 30 days, then ~$7/month) and
-    point `DATABASE_URL` at it, or
+- **The free Postgres database (`carvms-db`) expires 30 days after
+  creation.** Render then either deletes it or requires upgrading to a paid
+  instance (~$7/month) to keep it. Mark your calendar -- this is the one
+  real deadline in this setup. When it's time, either:
+  - Upgrade `carvms-db` to a paid plan in the Render dashboard (data carries
+    over, no migration needed), or
   - Hand this to your IT team's infrastructure, which is what you mentioned
-    doing eventually anyway.
+    doing eventually anyway -- export the data first if so (Render's
+    dashboard has a backup/export option for Postgres databases).
 - **The backend "sleeps" after ~15 minutes of no traffic** on Render's free
-  plan, and takes 30-60 seconds to wake up on the next request -- the first
-  load after a quiet period will feel slow, that's expected, not broken.
+  web-service plan, and takes 30-60 seconds to wake up on the next request
+  -- the first load after a quiet period will feel slow, that's expected,
+  not broken. (The database itself doesn't sleep -- only the API server
+  does, so no data is at risk during that gap, just responsiveness.)
 - **Optional features stay unconfigured** until you fill in their env vars
   later: Gmail OAuth (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/
   `GOOGLE_REDIRECT_URI`), the Centers Master Google Sheet sync
@@ -110,3 +108,11 @@ them in mind:
   escalation alerts (no provider is wired in yet at all -- see
   `docs/SMS_SETUP.md`). Nothing breaks without them; those specific features
   just report "not configured" instead of running.
+- **Local dev (your laptop) and the deployed app still use separate
+  databases.** Your local `.env` still points at a local SQLite file by
+  default -- logging in locally uses different accounts than the deployed
+  version. If you want your laptop and the deployed app to share the exact
+  same data, point your local `DATABASE_URL` at `carvms-db`'s *external*
+  connection string (shown on its Render dashboard page, under
+  "External Connection") instead of the local sqlite default -- ask if you
+  want help wiring that up.
