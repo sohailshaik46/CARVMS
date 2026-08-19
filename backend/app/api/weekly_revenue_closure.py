@@ -191,7 +191,9 @@ async def upload_batch(
 
     raw = await file.read()
     try:
-        raw_incidents, excess_billed_count, skipped = upload_service.parse_pending_workbook(raw)
+        raw_incidents, excess_billed_count, out_of_period_count, skipped = upload_service.parse_pending_workbook(
+            raw, period_start=period_start, period_end=period_end,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -204,6 +206,7 @@ async def upload_batch(
         batch=WeeklyRevenueClosureBatchOut.model_validate(batch),
         incidents_ingested=len(created),
         excess_billed_row_count=excess_billed_count,
+        out_of_period_row_count=out_of_period_count,
         skipped_rows=[SkippedPendingRowOut(row_number=s.row_number, reason=s.reason) for s in skipped],
     )
 

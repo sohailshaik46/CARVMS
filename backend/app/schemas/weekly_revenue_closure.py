@@ -62,6 +62,12 @@ class UploadBatchResultOut(BaseModel):
     batch: WeeklyRevenueClosureBatchOut
     incidents_ingested: int
     excess_billed_row_count: int
+    # Rows whose own Date fell outside this batch's period_start/
+    # period_end -- the source file repeatedly turned out to still carry
+    # a prior week's rows too; those are excluded here rather than
+    # double-counted against the wrong week (see
+    # weekly_revenue_closure_upload_service.parse_pending_workbook).
+    out_of_period_row_count: int = 0
     skipped_rows: list[SkippedPendingRowOut]
 
 

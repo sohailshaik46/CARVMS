@@ -120,17 +120,29 @@ class SkippedPendingRow:
 
 def parse_pending_workbook(
     raw_bytes: bytes,
-) -> tuple[list[calc_service.RawBillIncidentInput], int, list[SkippedPendingRow]]:
+    *,
+    period_start: date,
+    period_end: date,
+) -> tuple[list[calc_service.RawBillIncidentInput], int, int, list[SkippedPendingRow]]:
     """Returns (penalty-eligible incidents, excess-billed row count seen but
-    excluded, skipped rows). Never raises on a bad individual row -- only
-    on a genuinely unusable header (mirrors delayed_cash_upload_service's
-    contract)."""
+    excluded, out-of-period row count seen but excluded, skipped rows).
+    Never raises on a bad individual row -- only on a genuinely unusable
+    header (mirrors delayed_cash_upload_service's contract).
+
+    period_start/period_end are the batch's own declared week -- a real
+    "pending list" export has repeatedly turned out to still carry rows
+    from an earlier week (already ingested and penalized by that week's
+    own batch), so every row's own Date is checked against this window
+    before it's allowed to become an incident. A row outside the window is
+    counted (out_of_period_count) and excluded, exactly like the existing
+    excess-billed category -- never silently dropped without being
+    reported, but never turned into a duplicate incident either."""
     workbook = openpyxl.load_workbook(io.BytesIO(raw_bytes), data_only=True)
     sheet_name = SHEET_NAME if SHEET_NAME in workbook.sheetnames else workbook.sheetnames[0]
     sheet = workbook[sheet_name]
     rows = list(sheet.iter_rows(values_only=True))
     if not rows:
-        return [], 0, []
+        return [], 0, 0, []
 
     column_map = _build_column_map(rows[0])
     missing = [f for f in REQUIRED_FIELDS if f not in column_map]
@@ -146,6 +158,7 @@ def parse_pending_workbook(
 
     incidents: list[calc_service.RawBillIncidentInput] = []
     excess_billed_count = 0
+    out_of_period_count = 0
     skipped: list[SkippedPendingRow] = []
 
     for row_number, row in enumerate(rows[1:], start=2):
@@ -161,6 +174,14 @@ def parse_pending_workbook(
             incident_date = _coerce_date(cell(row, "incident_date"))
             if incident_date is None:
                 skipped.append(SkippedPendingRow(row_number, "Unparseable Date"))
+                continue
+
+            if incident_date < period_start or incident_date > period_end:
+                # Not an error -- the source file carrying a prior week's
+                # rows alongside this week's is expected, not a mistake.
+                # Counted, not added to `skipped` (see EXCESS_BILLED_TYPE
+                # just below for the identical convention).
+                out_of_period_count += 1
                 continue
 
             incident_type = _classify_final_remark(cell(row, "final_remarks"))
@@ -196,4 +217,4 @@ def parse_pending_workbook(
             skipped.append(SkippedPendingRow(row_number, f"Unexpected error: {exc}"))
             continue
 
-    return incidents, excess_billed_count, skipped
+    return incidents, excess_billed_count, out_of_period_count, skipped

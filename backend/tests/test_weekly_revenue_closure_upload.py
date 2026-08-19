@@ -45,13 +45,24 @@ def _build_workbook(header, rows) -> bytes:
     return buf.getvalue()
 
 
+# The real Week 2 fixture's own Date column spans exactly this range --
+# using it as the batch period here means these reconciliation tests
+# exercise the real out-of-period filter (it's just a no-op for this
+# particular real file, since none of its rows fall outside it).
+WEEK2_PERIOD_START = date(2026, 7, 1)
+WEEK2_PERIOD_END = date(2026, 7, 12)
+
+
 def test_parses_real_week2_pending_file_and_reconciles_exactly():
     fixture = _load_fixture("weekly_revenue_closure_week2_pending.json")
     content = _build_workbook(fixture["header"], fixture["rows"])
 
-    incidents, excess_billed_count, skipped = upload_service.parse_pending_workbook(content)
+    incidents, excess_billed_count, out_of_period_count, skipped = upload_service.parse_pending_workbook(
+        content, period_start=WEEK2_PERIOD_START, period_end=WEEK2_PERIOD_END,
+    )
 
     assert skipped == []
+    assert out_of_period_count == 0  # every row in this real file is genuinely within its own week
     assert excess_billed_count == fixture["expected_excess_billed_row_count"]
 
     actual_counts = defaultdict(lambda: defaultdict(int))
@@ -71,7 +82,9 @@ def test_parsed_incidents_have_no_remark_or_verdict_yet():
     fixture = _load_fixture("weekly_revenue_closure_week2_pending.json")
     content = _build_workbook(fixture["header"], fixture["rows"])
 
-    incidents, _, _ = upload_service.parse_pending_workbook(content)
+    incidents, _, _, _ = upload_service.parse_pending_workbook(
+        content, period_start=WEEK2_PERIOD_START, period_end=WEEK2_PERIOD_END,
+    )
     assert len(incidents) > 0
     for inc in incidents:
         assert inc.center_remarks is None
@@ -82,7 +95,9 @@ def test_excess_billed_rows_are_excluded_but_counted_not_silently_dropped():
     fixture = _load_fixture("weekly_revenue_closure_week2_pending.json")
     content = _build_workbook(fixture["header"], fixture["rows"])
 
-    incidents, excess_billed_count, _ = upload_service.parse_pending_workbook(content)
+    incidents, excess_billed_count, _, _ = upload_service.parse_pending_workbook(
+        content, period_start=WEEK2_PERIOD_START, period_end=WEEK2_PERIOD_END,
+    )
     assert excess_billed_count == 16
     # None of the parsed (penalty-eligible) incidents are the excess type.
     assert all(inc.mis_final_remark != upload_service.EXCESS_BILLED_TYPE for inc in incidents)
@@ -101,7 +116,7 @@ def test_missing_required_column_raises_clear_error():
     import pytest
 
     with pytest.raises(ValueError, match="missing required column"):
-        upload_service.parse_pending_workbook(buf.getvalue())
+        upload_service.parse_pending_workbook(buf.getvalue(), period_start=date(2026, 7, 1), period_end=date(2026, 7, 12))
 
 
 def test_unparseable_date_is_skipped_not_fatal():
@@ -116,7 +131,62 @@ def test_unparseable_date_is_skipped_not_fatal():
     buf = io.BytesIO()
     wb.save(buf)
 
-    incidents, _, skipped = upload_service.parse_pending_workbook(buf.getvalue())
+    incidents, _, _, skipped = upload_service.parse_pending_workbook(
+        buf.getvalue(), period_start=date(2026, 7, 1), period_end=date(2026, 7, 12),
+    )
     assert len(incidents) == 1
     assert len(skipped) == 1
     assert "date" in skipped[0].reason.lower()
+
+
+def test_rows_from_a_prior_week_are_excluded_and_counted_not_ingested():
+    """The exact scenario reported: an exported pending list still carries
+    the previous week's rows too -- those must not become incidents in
+    THIS batch (already ingested/penalized by the earlier week's own
+    upload)."""
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    sheet.title = "Center wise"
+    sheet.append(["Zone", "Cluster", "Center Code", "Center Name", "Date", "Billed Sessions", "Daily Report", "Variance", "Remark", "Final Remarks"])
+    # Week 2 Aug'26 = 10-16 Aug'26. Two rows genuinely belong to this week;
+    # two are leftover from the prior week (3-9 Aug'26) still present in
+    # the same export.
+    sheet.append(["South", "Test Cluster", "TEST-C", "Test Center", date(2026, 8, 10), 5, 4, -1, "1 Bill pending", "Bill Pending"])
+    sheet.append(["South", "Test Cluster", "TEST-C", "Test Center", date(2026, 8, 16), 5, 4, -1, "1 Bill pending", "Bill Pending"])
+    sheet.append(["South", "Test Cluster", "TEST-C", "Test Center", date(2026, 8, 9), 5, 4, -1, "1 Bill pending", "Bill Pending"])
+    sheet.append(["South", "Test Cluster", "TEST-C", "Test Center", date(2026, 8, 3), 5, 4, -1, "1 Bill pending", "Bill Pending"])
+    import io
+
+    buf = io.BytesIO()
+    wb.save(buf)
+
+    incidents, excess_billed_count, out_of_period_count, skipped = upload_service.parse_pending_workbook(
+        buf.getvalue(), period_start=date(2026, 8, 10), period_end=date(2026, 8, 16),
+    )
+    assert len(incidents) == 2
+    assert {inc.incident_date for inc in incidents} == {date(2026, 8, 10), date(2026, 8, 16)}
+    assert out_of_period_count == 2
+    assert excess_billed_count == 0
+    assert skipped == []  # not an error -- excluded via the dedicated counter, same as excess-billed
+
+
+def test_out_of_period_rows_are_not_reported_as_skipped_errors():
+    """Mirrors the excess-billed convention exactly -- an out-of-period row
+    is a normal, expected exclusion, not something that should look like
+    a data problem in the skipped-rows report."""
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    sheet.title = "Center wise"
+    sheet.append(["Zone", "Cluster", "Center Code", "Center Name", "Date", "Billed Sessions", "Daily Report", "Variance", "Remark", "Final Remarks"])
+    sheet.append(["South", "Test Cluster", "TEST-C", "Test Center", date(2026, 8, 1), 5, 4, -1, "1 Bill pending", "Bill Pending"])
+    import io
+
+    buf = io.BytesIO()
+    wb.save(buf)
+
+    incidents, _, out_of_period_count, skipped = upload_service.parse_pending_workbook(
+        buf.getvalue(), period_start=date(2026, 8, 10), period_end=date(2026, 8, 16),
+    )
+    assert incidents == []
+    assert out_of_period_count == 1
+    assert skipped == []
