@@ -553,6 +553,10 @@ export interface WrcUploadResult {
   batch: WeeklyRevenueClosureBatch
   incidents_ingested: number
   excess_billed_row_count: number
+  // Rows whose own Date fell outside this batch's period -- the source
+  // file repeatedly turns out to still carry a prior week's rows too;
+  // those are excluded rather than double-counted against the wrong week.
+  out_of_period_row_count: number
   skipped_rows: WrcSkippedRow[]
 }
 

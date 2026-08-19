@@ -280,8 +280,11 @@ export function DelayedCashBillingPage() {
         <UploadBatchModal
           onClose={() => setIsUploadOpen(false)}
           onUploaded={(result) => {
+            // Deliberately does NOT close the modal (see UploadBatchModal
+            // below) -- it switches to its own result view and stays open
+            // until the user clicks "Done" themselves, so that view is
+            // actually seen rather than instantly unmounted.
             queryClient.invalidateQueries({ queryKey: ['dcb-batches'] })
-            setIsUploadOpen(false)
             setSelectedBatchId(result.batch.id)
             if (result.skipped_rows.length > 0) {
               showToast(`Uploaded with ${result.skipped_rows.length} row(s) skipped -- see the report below`, 'error')
@@ -1905,26 +1908,39 @@ function UploadBatchModal({
             )}
           </div>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <TextField
-            id="dcb-period-start"
-            label="Period start"
-            type="date"
-            value={periodStart}
-            onChange={(e) => setPeriodStart(e.target.value)}
-          />
-          <TextField
-            id="dcb-period-end"
-            label="Period end"
-            type="date"
-            value={periodEnd}
-            onChange={(e) => setPeriodEnd(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">Delayed Cash Bills Data workbook (.xlsx)</label>
-          <input ref={fileInputRef} type="file" accept=".xlsx,.xlsm" className="block w-full text-sm" />
-        </div>
+        {!result && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <TextField
+                id="dcb-period-start"
+                label="Period start"
+                type="date"
+                value={periodStart}
+                onChange={(e) => setPeriodStart(e.target.value)}
+              />
+              <TextField
+                id="dcb-period-end"
+                label="Period end"
+                type="date"
+                value={periodEnd}
+                onChange={(e) => setPeriodEnd(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">Delayed Cash Bills Data workbook (.xlsx)</label>
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xlsm" className="block w-full text-sm" />
+            </div>
+          </>
+        )}
+
+        {result && (
+          <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-500/10">
+            <p className="text-sm text-emerald-800 dark:text-emerald-200">
+              <span className="font-semibold">{result.center_penalties.length}</span> center(s),{' '}
+              <span className="font-semibold">{result.center_penalties.reduce((sum, cp) => sum + cp.total_bills, 0)}</span> bill(s) ingested.
+            </p>
+          </div>
+        )}
 
         {result && result.skipped_rows.length > 0 && (
           <div className="rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-500/10">

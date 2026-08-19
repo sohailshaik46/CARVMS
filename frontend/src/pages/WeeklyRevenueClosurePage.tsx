@@ -353,14 +353,22 @@ export function WeeklyRevenueClosurePage() {
         <UploadBatchModal
           onClose={() => setIsUploadOpen(false)}
           onUploaded={(result) => {
+            // Deliberately does NOT close the modal (see UploadBatchModal
+            // below) -- it switches to its own result view (skipped-rows
+            // table, out-of-period count, etc.) and stays open until the
+            // user clicks "Done" themselves, so that view is actually
+            // seen rather than instantly unmounted.
             queryClient.invalidateQueries({ queryKey: ['wrc-batches'] })
-            setIsUploadOpen(false)
             setSelectedBatchId(result.batch.id)
+            const outOfPeriodNote =
+              result.out_of_period_row_count > 0
+                ? ` ${result.out_of_period_row_count} row(s) outside this batch's own dates were ignored (already covered by a prior week's upload).`
+                : ''
             if (result.skipped_rows.length > 0) {
-              showToast(`Uploaded with ${result.skipped_rows.length} row(s) skipped -- see the report below`, 'error')
+              showToast(`Uploaded with ${result.skipped_rows.length} row(s) skipped -- see the report below.${outOfPeriodNote}`, 'error')
             } else {
               showToast(
-                `Ingested ${result.incidents_ingested} incident(s); ${result.excess_billed_row_count} Excess billed row(s) counted (out of scope for penalty)`,
+                `Ingested ${result.incidents_ingested} incident(s); ${result.excess_billed_row_count} Excess billed row(s) counted (out of scope for penalty).${outOfPeriodNote}`,
               )
             }
           }}
@@ -2020,15 +2028,38 @@ function UploadBatchModal({
             )}
           </div>
         )}
-        <div className="grid grid-cols-3 gap-3">
-          <TextField id="wrc-period-start" label="Period start" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
-          <TextField id="wrc-period-end" label="Period end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
-          <TextField id="wrc-week-label" label="Week label" placeholder="e.g. Week 2" value={weekLabel} onChange={(e) => setWeekLabel(e.target.value)} />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-500 dark:text-slate-400">Closure pending list workbook (.xlsx)</label>
-          <input ref={fileInputRef} type="file" accept=".xlsx,.xlsm" className="block w-full text-sm" />
-        </div>
+        {!result && (
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              <TextField id="wrc-period-start" label="Period start" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+              <TextField id="wrc-period-end" label="Period end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+              <TextField id="wrc-week-label" label="Week label" placeholder="e.g. Week 2" value={weekLabel} onChange={(e) => setWeekLabel(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-500 dark:text-slate-400">Closure pending list workbook (.xlsx)</label>
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xlsm" className="block w-full text-sm" />
+            </div>
+          </>
+        )}
+
+        {result && (
+          <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-500/10">
+            <p className="text-sm text-emerald-800 dark:text-emerald-200">
+              <span className="font-semibold">{result.incidents_ingested}</span> incident(s) ingested for{' '}
+              <span className="font-semibold">{result.batch.week_label}</span>.
+            </p>
+            <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
+              {result.excess_billed_row_count} "Excess billed" row(s) counted but out of scope for penalty.
+              {result.out_of_period_row_count > 0 && (
+                <>
+                  {' '}
+                  {result.out_of_period_row_count} row(s) fell outside this batch's own dates and were ignored --
+                  already covered by a prior week's upload.
+                </>
+              )}
+            </p>
+          </div>
+        )}
 
         {result && result.skipped_rows.length > 0 && (
           <div className="rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-500/10">
