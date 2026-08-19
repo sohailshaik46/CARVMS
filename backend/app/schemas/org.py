@@ -13,6 +13,17 @@ class OrgDimensionOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class RemoteSyncReportOut(BaseModel):
+    dimensions_created: int
+    dimensions_updated: int
+    dimensions_unchanged: int
+    nodes_created: int
+    nodes_updated: int
+    nodes_unchanged: int
+    changed_node_names: list[str]
+    committed: bool
+
+
 class OrgDimensionCreate(BaseModel):
     key: str = Field(min_length=1, max_length=50, pattern=r"^[a-z0-9_]+$")
     label: str = Field(min_length=1, max_length=100)

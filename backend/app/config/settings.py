@@ -24,14 +24,25 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./carvms.db"
 
-    @field_validator("DATABASE_URL")
+    # The OTHER database this instance can manually, explicitly sync Org
+    # Master data against -- e.g. a local dev instance's REMOTE_DATABASE_URL
+    # points at Render's Postgres so an admin can push/pull on demand (see
+    # org_master_remote_sync_service). Deliberately optional and unset on
+    # Render itself: syncing only ever makes sense FROM a local dev copy TO
+    # the shared live database, never the other way around from Render's
+    # own perspective, so this is never set in render.yaml.
+    REMOTE_DATABASE_URL: Optional[str] = None
+
+    @field_validator("DATABASE_URL", "REMOTE_DATABASE_URL")
     @classmethod
-    def _normalize_postgres_scheme(cls, v: str) -> str:
+    def _normalize_postgres_scheme(cls, v: Optional[str]) -> Optional[str]:
         """Some Postgres hosts (Heroku-style, and occasionally Render's
         own connection strings) hand out `postgres://...` -- SQLAlchemy
         2.0 dropped support for that scheme and requires `postgresql://`.
         Rewriting it here means DATABASE_URL can be pasted verbatim from
         wherever the database lives without a manual edit."""
+        if v is None:
+            return v
         if v.startswith("postgres://"):
             return "postgresql://" + v[len("postgres://"):]
         return v

@@ -1,5 +1,5 @@
 import { api } from '../api'
-import type { CenterDetail, CenterDirectoryEntry, OrgDimension, OrgNode, OrgNodeWithPath } from '../types'
+import type { CenterDetail, CenterDirectoryEntry, OrgDimension, OrgNode, OrgNodeWithPath, RemoteSyncReport } from '../types'
 
 export async function listDimensions(): Promise<OrgDimension[]> {
   const { data } = await api.get<OrgDimension[]>('/org/dimensions')
@@ -34,6 +34,20 @@ export async function getCenterDetail(centerCode: string): Promise<CenterDetail>
  * Deliberately separate from listNodes(), which is paginated/capped. */
 export async function getCentersDirectory(): Promise<CenterDirectoryEntry[]> {
   const { data } = await api.get<CenterDirectoryEntry[]>('/org/centers-directory')
+  return data
+}
+
+/** Manual Org Master sync against REMOTE_DATABASE_URL -- never automatic.
+ * commit=false (the default) previews the diff and writes nothing; call
+ * again with commit=true once the preview looks right. Never deletes
+ * anything on the receiving side (see org_master_remote_sync_service). */
+export async function pushOrgMasterToRemote(commit: boolean): Promise<RemoteSyncReport> {
+  const { data } = await api.post<RemoteSyncReport>('/org/sync/remote/push', null, { params: { commit } })
+  return data
+}
+
+export async function pullOrgMasterFromRemote(commit: boolean): Promise<RemoteSyncReport> {
+  const { data } = await api.post<RemoteSyncReport>('/org/sync/remote/pull', null, { params: { commit } })
   return data
 }
 

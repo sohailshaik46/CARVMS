@@ -24,10 +24,11 @@ from app.schemas.org import (
     OrgNodeOut,
     OrgNodeUpdate,
     OrgNodeWithPath,
+    RemoteSyncReportOut,
     SkippedRowOut,
     SyncReportOut,
 )
-from app.services import org_contact_change_service, org_service, org_sheet_sync_service
+from app.services import org_contact_change_service, org_master_remote_sync_service, org_service, org_sheet_sync_service
 from app.services.org_service import (
     DimensionNotFoundError,
     DuplicateDimensionKeyError,
@@ -327,6 +328,72 @@ async def sync_center_emails_upload(
         unchanged=report.unchanged,
         skipped=[SkippedRowOut(row_number=s.row_number, reason=s.reason) for s in report.skipped],
     )
+
+
+# ---------------------------------------------------------------------------
+# Manual Org Master sync against REMOTE_DATABASE_URL (local <-> Render) --
+# never automatic, see org_master_remote_sync_service's module docstring.
+# ---------------------------------------------------------------------------
+
+
+def _remote_sync_report_to_schema(report) -> RemoteSyncReportOut:
+    return RemoteSyncReportOut(
+        dimensions_created=report.dimensions_created,
+        dimensions_updated=report.dimensions_updated,
+        dimensions_unchanged=report.dimensions_unchanged,
+        nodes_created=report.nodes_created,
+        nodes_updated=report.nodes_updated,
+        nodes_unchanged=report.nodes_unchanged,
+        changed_node_names=report.changed_node_names,
+        committed=report.committed,
+    )
+
+
+@router.post("/sync/remote/push", response_model=RemoteSyncReportOut)
+def push_org_master_to_remote(
+    commit: bool = Query(False),
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_role(roles.ADMIN)),
+):
+    """Copies THIS instance's Org Master (org_dimensions + org_nodes) INTO
+    REMOTE_DATABASE_URL (in practice: local dev -> Render). commit=false
+    (the default) previews the diff and writes nothing -- call again with
+    commit=true once the preview looks right. Never deletes anything on
+    the remote side; only creates missing rows and updates changed fields
+    on ones that already match by natural identity."""
+    try:
+        remote_db = org_master_remote_sync_service.open_remote_session()
+    except org_master_remote_sync_service.RemoteSyncNotConfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except org_master_remote_sync_service.RemoteSyncMisconfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        report = org_master_remote_sync_service.sync_org_master(db, remote_db, commit=commit)
+    finally:
+        remote_db.close()
+    return _remote_sync_report_to_schema(report)
+
+
+@router.post("/sync/remote/pull", response_model=RemoteSyncReportOut)
+def pull_org_master_from_remote(
+    commit: bool = Query(False),
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_role(roles.ADMIN)),
+):
+    """The reverse of push: copies REMOTE_DATABASE_URL's Org Master INTO
+    this instance (in practice: Render -> local dev). Same commit=false
+    preview-first / never-deletes contract as push."""
+    try:
+        remote_db = org_master_remote_sync_service.open_remote_session()
+    except org_master_remote_sync_service.RemoteSyncNotConfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except org_master_remote_sync_service.RemoteSyncMisconfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        report = org_master_remote_sync_service.sync_org_master(remote_db, db, commit=commit)
+    finally:
+        remote_db.close()
+    return _remote_sync_report_to_schema(report)
 
 
 # ---------------------------------------------------------------------------

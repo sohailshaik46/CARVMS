@@ -350,6 +350,17 @@ export interface CenterDirectoryEntry {
   name: string
 }
 
+export interface RemoteSyncReport {
+  dimensions_created: number
+  dimensions_updated: number
+  dimensions_unchanged: number
+  nodes_created: number
+  nodes_updated: number
+  nodes_unchanged: number
+  changed_node_names: string[]
+  committed: boolean
+}
+
 // Single shared response link -- same shape as PublicDelayedCashCase, plus
 // the case's own id (needed to submit against it without a token).
 export interface PublicOpenDelayedCashCase extends PublicDelayedCashCase {
