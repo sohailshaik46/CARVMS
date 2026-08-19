@@ -149,6 +149,19 @@ export function EyeIcon(props: IconProps) {
   )
 }
 
+/** The same open-eye outline, plus a diagonal strike-through -- "hidden",
+ * for the password show/hide toggle's off state. */
+export function EyeOffIcon(props: IconProps) {
+  return base(
+    <>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="2.6" />
+      <path d="M4 4 20 20" />
+    </>,
+    props,
+  )
+}
+
 export function ChevronDownIcon(props: IconProps) {
   return base(<path d="M5 8.5 12 15.5 19 8.5" />, props)
 }
