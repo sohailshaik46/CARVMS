@@ -78,7 +78,7 @@ def list_nodes(
     dimension_key: str | None = None,
     parent_id: int | None = None,
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(100, ge=1, le=5000),
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):

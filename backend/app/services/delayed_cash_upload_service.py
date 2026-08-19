@@ -137,20 +137,33 @@ def _find_data_sheet(workbook) -> tuple[str, list, dict[str, int]]:
     )
 
 
-def parse_bills_workbook(raw_bytes: bytes) -> tuple[list[calc_service.RawBillInput], list[SkippedBillRow]]:
+def parse_bills_workbook(
+    raw_bytes: bytes, *, period_start: date, period_end: date
+) -> tuple[list[calc_service.RawBillInput], int, list[SkippedBillRow]]:
     """Searches every sheet in the workbook for the one containing all the
     required columns (see _find_data_sheet) and returns (parsed rows,
-    skipped rows). Raises ValueError only when no sheet has a usable
-    header row at all -- a missing/bad individual data row never raises,
-    it's skipped."""
+    out-of-period row count, skipped rows). Raises ValueError only when no
+    sheet has a usable header row at all -- a missing/bad individual data
+    row never raises, it's skipped.
+
+    A row whose own BILLDATE falls outside this batch's declared
+    period_start/period_end is excluded here -- mirrors the identical
+    bug fix in weekly_revenue_closure_upload_service.parse_pending_workbook:
+    the source workbook for week N routinely carries a few rows from
+    week N-1 (already ingested and penalized in that prior week's
+    upload), and without this filter every such row got double-counted
+    into the current batch too. Counted and excluded, but -- like the
+    EXCESS_BILLED_TYPE convention elsewhere -- NOT added to `skipped`,
+    since this is an expected/normal exclusion, not a data error."""
     workbook = openpyxl.load_workbook(io.BytesIO(raw_bytes), data_only=True)
     sheet_name, rows, column_map = _find_data_sheet(workbook)
     if len(rows) <= 1:
-        return [], []
+        return [], 0, []
 
     parsed: list[calc_service.RawBillInput] = []
     skipped: list[SkippedBillRow] = []
     seen_sales_bills: set[str] = set()
+    out_of_period_count = 0
 
     def cell(row, field):
         idx = column_map.get(field)
@@ -175,6 +188,10 @@ def parse_bills_workbook(raw_bytes: bytes) -> tuple[list[calc_service.RawBillInp
             created_date = _coerce_date(cell(row, "created_date"))
             if bill_date is None or created_date is None:
                 skipped.append(SkippedBillRow(row_number, "Unparseable BILLDATE or created_date"))
+                continue
+
+            if bill_date < period_start or bill_date > period_end:
+                out_of_period_count += 1
                 continue
 
             bill_created_time = _coerce_datetime(cell(row, "bill_created_time")) or _coerce_datetime(created_date)
@@ -206,7 +223,7 @@ def parse_bills_workbook(raw_bytes: bytes) -> tuple[list[calc_service.RawBillInp
             skipped.append(SkippedBillRow(row_number, f"Unexpected error: {exc}"))
             continue
 
-    return parsed, skipped
+    return parsed, out_of_period_count, skipped
 
 
 def upload_batch(
@@ -218,11 +235,14 @@ def upload_batch(
     period_end: date,
     rule: DelayedCashPenaltyRule,
     uploaded_by: User,
-) -> tuple[DelayedCashUploadBatch, list[DelayedCashCenterPenalty], list[SkippedBillRow]]:
+) -> tuple[DelayedCashUploadBatch, list[DelayedCashCenterPenalty], int, list[SkippedBillRow]]:
     """Parses the workbook, then runs the proven calculator pipeline against
-    every row that parsed cleanly. A batch is always created even if every
-    row is skipped, so the skip report has somewhere to attach to."""
-    raw_bills, skipped = parse_bills_workbook(raw_bytes)
+    every row that parsed cleanly and falls inside this batch's own
+    period. A batch is always created even if every row is skipped, so
+    the skip report has somewhere to attach to."""
+    raw_bills, out_of_period_count, skipped = parse_bills_workbook(
+        raw_bytes, period_start=period_start, period_end=period_end
+    )
 
     batch = calc_service.create_upload_batch(
         db,
@@ -234,7 +254,7 @@ def upload_batch(
     )
     calc_service.ingest_bills(db, batch=batch, rule=rule, raw_bills=raw_bills)
     center_penalties = calc_service.compute_center_penalties(db, batch=batch, rule=rule)
-    return batch, center_penalties, skipped
+    return batch, center_penalties, out_of_period_count, skipped
 
 
 def publish_batch(db: Session, *, batch: DelayedCashUploadBatch) -> list[DelayedCashCenterPenalty]:

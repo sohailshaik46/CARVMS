@@ -11,8 +11,11 @@ export async function createDimension(payload: { key: string; label: string; sor
   return data
 }
 
+/** limit is 5000, not the old 500 -- the real Org Master already has 846
+ * nodes, so 500 silently hid ~346 of them from the Nodes table. Matches
+ * the server-side cap in GET /org/nodes / org_service.list_nodes. */
 export async function listNodes(params?: { dimension_key?: string; parent_id?: number | null }): Promise<OrgNode[]> {
-  const { data } = await api.get<OrgNode[]>('/org/nodes', { params: { ...params, limit: 500 } })
+  const { data } = await api.get<OrgNode[]>('/org/nodes', { params: { ...params, limit: 5000 } })
   return data
 }
 

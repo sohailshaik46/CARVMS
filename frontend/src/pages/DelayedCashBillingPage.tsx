@@ -287,10 +287,16 @@ export function DelayedCashBillingPage() {
             // actually seen rather than instantly unmounted.
             queryClient.invalidateQueries({ queryKey: ['dcb-batches'] })
             setSelectedBatchId(result.batch.id)
+            const outOfPeriodNote =
+              result.out_of_period_row_count > 0
+                ? ` ${result.out_of_period_row_count} row(s) outside this batch's own dates were ignored (already covered by a prior week's upload).`
+                : ''
             if (result.skipped_rows.length > 0) {
-              showToast(`Uploaded with ${result.skipped_rows.length} row(s) skipped -- see the report below`, 'error')
+              showToast(`Uploaded with ${result.skipped_rows.length} row(s) skipped -- see the report below.${outOfPeriodNote}`, 'error')
             } else {
-              showToast(`Uploaded ${result.center_penalties.length} center(s), ${result.center_penalties.reduce((sum, cp) => sum + cp.total_bills, 0)} bill(s)`)
+              showToast(
+                `Uploaded ${result.center_penalties.length} center(s), ${result.center_penalties.reduce((sum, cp) => sum + cp.total_bills, 0)} bill(s).${outOfPeriodNote}`,
+              )
             }
           }}
         />
@@ -1940,6 +1946,12 @@ function UploadBatchModal({
               <span className="font-semibold">{result.center_penalties.length}</span> center(s),{' '}
               <span className="font-semibold">{result.center_penalties.reduce((sum, cp) => sum + cp.total_bills, 0)}</span> bill(s) ingested.
             </p>
+            {result.out_of_period_row_count > 0 && (
+              <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
+                {result.out_of_period_row_count} row(s) fell outside this batch's own dates and were ignored --
+                already covered by a prior week's upload.
+              </p>
+            )}
           </div>
         )}
 

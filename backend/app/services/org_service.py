@@ -86,7 +86,12 @@ def list_nodes(
         query = query.filter(OrgNode.dimension_id == dimension_id)
     if parent_id is not None:
         query = query.filter(OrgNode.parent_id == parent_id)
-    limit = max(1, min(limit, 500))
+    # Capped well above the real Org Master's current size (846 nodes) so
+    # the Nodes table never silently truncates -- a caller that genuinely
+    # wants a small page still gets one via `limit`, this only stops an
+    # unbounded query. Was hardcoded to 500 -- less than the real node
+    # count -- which hid ~346 nodes from the Org Hierarchy page entirely.
+    limit = max(1, min(limit, 5000))
     return query.order_by(OrgNode.name).offset(max(0, skip)).limit(limit).all()
 
 

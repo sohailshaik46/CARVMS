@@ -253,6 +253,35 @@ def test_upload_skips_bad_rows_without_aborting_the_batch(client):
     assert Decimal(cp["calculated_penalty"]) == Decimal("100")
 
 
+def test_rows_from_a_prior_week_are_excluded_and_counted_not_ingested(client):
+    """The real bug this guards against: the source workbook for week N
+    routinely carries a few rows from week N-1 (already ingested and
+    penalized in that prior week's own upload) -- BILLDATE outside this
+    batch's own period_start/period_end must be excluded, not
+    double-counted into this batch too."""
+    _ensure_approved_rule("DCB-UPLOAD-OUTOFPERIOD")
+    admin_token = _admin(client, "dcbu_admin_oop", "dcbu_admin_oop@example.com")
+
+    rows = [
+        # inside the period (2026-07-01 .. 2026-07-31)
+        ["909-G-C", "Out Of Period Center", "OOP-1", date(2026, 7, 10), datetime(2026, 7, 12, 9, 0), date(2026, 7, 12), 2, None, None],
+        ["909-G-C", "Out Of Period Center", "OOP-2", date(2026, 7, 20), datetime(2026, 7, 22, 9, 0), date(2026, 7, 22), 2, None, None],
+        # from the PRIOR period -- must be excluded
+        ["909-G-C", "Out Of Period Center", "OOP-3", date(2026, 6, 25), datetime(2026, 6, 27, 9, 0), date(2026, 6, 27), 2, None, None],
+        ["909-G-C", "Out Of Period Center", "OOP-4", date(2026, 6, 28), datetime(2026, 6, 30, 9, 0), date(2026, 6, 30), 2, None, None],
+    ]
+    resp = _upload(client, admin_token, rows, period_start="2026-07-01", period_end="2026-07-31")
+    assert resp.status_code == 201
+    body = resp.json()
+
+    assert body["out_of_period_row_count"] == 2
+    assert body["skipped_rows"] == []  # an expected exclusion, not a data error
+
+    centers = {cp["centre_code"]: cp for cp in body["center_penalties"]}
+    cp = centers["909-G-C"]
+    assert cp["total_bills"] == 2  # only the two in-period rows
+
+
 def test_upload_missing_required_column_returns_400(client):
     _ensure_approved_rule("DCB-UPLOAD-BADHEADER")
     admin_token = _admin(client, "dcbu_admin_badheader", "dcbu_admin_badheader@example.com")

@@ -403,6 +403,7 @@ export interface SkippedBillRow {
 export interface UploadBatchResult {
   batch: DelayedCashUploadBatch
   center_penalties: DelayedCashCenterPenalty[]
+  out_of_period_row_count: number
   skipped_rows: SkippedBillRow[]
 }
 

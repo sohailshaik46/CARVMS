@@ -181,7 +181,7 @@ async def upload_batch_endpoint(
 
     raw = await file.read()
     try:
-        batch, center_penalties, skipped = upload_service.upload_batch(
+        batch, center_penalties, out_of_period_count, skipped = upload_service.upload_batch(
             db,
             raw_bytes=raw,
             source_filename=file.filename or "upload.xlsx",
@@ -196,6 +196,7 @@ async def upload_batch_endpoint(
     return UploadBatchResultOut(
         batch=UploadBatchOut.model_validate(batch),
         center_penalties=[DelayedCashCenterPenaltyOut.model_validate(cp) for cp in center_penalties],
+        out_of_period_row_count=out_of_period_count,
         skipped_rows=[SkippedBillRowOut(row_number=s.row_number, reason=s.reason) for s in skipped],
     )
 

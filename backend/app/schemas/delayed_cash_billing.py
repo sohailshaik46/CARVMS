@@ -67,6 +67,11 @@ class SkippedBillRowOut(BaseModel):
 class UploadBatchResultOut(BaseModel):
     batch: UploadBatchOut
     center_penalties: list[DelayedCashCenterPenaltyOut]
+    # Rows whose own BILLDATE fell outside this batch's period_start/
+    # period_end -- excluded from ingestion (already covered by a prior
+    # week's upload), never added to skipped_rows since this is an
+    # expected exclusion, not a data error. Mirrors WRC's identical field.
+    out_of_period_row_count: int = 0
     skipped_rows: list[SkippedBillRowOut]
 
 
