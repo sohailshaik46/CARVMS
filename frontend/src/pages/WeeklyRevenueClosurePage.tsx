@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Card, CardBody, CardHeader, KpiCard } from '../components/ui/Card'
+import { Combobox } from '../components/ui/Combobox'
 import { TextField } from '../components/ui/Field'
 import { EmptyState, ErrorBanner, Spinner } from '../components/ui/Feedback'
 import { HeroBanner } from '../components/ui/HeroBanner'
@@ -98,17 +99,17 @@ function CenterFilterSelect({
   const centers = Array.from(new Map(items.map((i) => [i.centre_code, i.centre_name])).entries()).sort((a, b) =>
     a[0].localeCompare(b[0]),
   )
+  const options = centers.map(([code, name]) => ({ value: code, label: `${code} -- ${name}`, searchText: name }))
 
   return (
-    <Tooltip text="Search/jump to one center -- only lists centers with a row in the currently selected week or batch above.">
-      <Select className="w-56 text-sm" value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="all">Search centers…</option>
-        {centers.map(([code, name]) => (
-          <option key={code} value={code}>
-            {code} -- {name}
-          </option>
-        ))}
-      </Select>
+    <Tooltip text="Search/jump to one center by code or name (type any part, e.g. just the number) -- only lists centers with a row in the currently selected week or batch above.">
+      <Combobox
+        className="w-56 text-sm"
+        placeholder="Search centers…"
+        value={value === 'all' ? '' : value}
+        onChange={(v) => onChange(v === '' ? 'all' : v)}
+        options={options}
+      />
     </Tooltip>
   )
 }

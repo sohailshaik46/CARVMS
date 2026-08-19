@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import nephroplusLogo from '../assets/nephroplus-logo.svg'
 import { WrcCaseCard, type WrcResponseFields } from '../components/weeklyRevenueClosure/WrcCaseCard'
+import { Combobox } from '../components/ui/Combobox'
 import { EmptyState, Spinner } from '../components/ui/Feedback'
 import {
   getWrcCenterDirectory,
@@ -14,7 +15,6 @@ import {
  * module docstring (backend) for the security trade-off this makes. */
 export function WeeklyRevenueOpenLinkPage() {
   const [centerCode, setCenterCode] = useState('')
-  const [centerName, setCenterName] = useState('')
   const queryClient = useQueryClient()
 
   const { data: centerDirectory } = useQuery({
@@ -34,17 +34,11 @@ export function WeeklyRevenueOpenLinkPage() {
     enabled: !!resolvedCode,
   })
 
-  function handleCenterCodeChange(value: string) {
-    setCenterCode(value)
-    const match = centerDirectory?.find((c) => c.code === value)
-    setCenterName(match ? match.name : '')
-  }
-
-  function handleCenterNameChange(value: string) {
-    setCenterName(value)
-    const match = centerDirectory?.find((c) => c.name === value)
-    setCenterCode(match ? match.code : '')
-  }
+  const centerOptions = (centerDirectory ?? []).map((c) => ({
+    value: c.code,
+    label: `${c.code} -- ${c.name}`,
+    searchText: c.name,
+  }))
 
   async function handleSubmit(caseId: number, fields: WrcResponseFields, evidence: File) {
     const result = await submitWrcCaseResponseById(caseId, fields, evidence)
@@ -66,47 +60,17 @@ export function WeeklyRevenueOpenLinkPage() {
           <p className="mb-4 text-sm text-slate-600">
             Select your center to see any Weekly Revenue Closure incident that needs a response.
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="wrc_picker_center_code" className="mb-1 block text-sm font-medium text-slate-700">
-                Center Code
-              </label>
-              <input
-                id="wrc_picker_center_code"
-                list="wrc-picker-center-code-options"
-                autoComplete="off"
-                placeholder="Type to search…"
-                className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline focus:outline-2 focus:outline-brand-500/30"
-                value={centerCode}
-                onChange={(e) => handleCenterCodeChange(e.target.value)}
-              />
-              <datalist id="wrc-picker-center-code-options">
-                {(centerDirectory ?? []).map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.name}
-                  </option>
-                ))}
-              </datalist>
-            </div>
-            <div>
-              <label htmlFor="wrc_picker_center_name" className="mb-1 block text-sm font-medium text-slate-700">
-                Center Name
-              </label>
-              <input
-                id="wrc_picker_center_name"
-                list="wrc-picker-center-name-options"
-                autoComplete="off"
-                placeholder="Type to search…"
-                className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline focus:outline-2 focus:outline-brand-500/30"
-                value={centerName}
-                onChange={(e) => handleCenterNameChange(e.target.value)}
-              />
-              <datalist id="wrc-picker-center-name-options">
-                {(centerDirectory ?? []).map((c) => (
-                  <option key={c.code} value={c.name} />
-                ))}
-              </datalist>
-            </div>
+          <div>
+            <label htmlFor="wrc_picker_center_code" className="mb-1 block text-sm font-medium text-slate-700">
+              Center Code or Name
+            </label>
+            <Combobox
+              id="wrc_picker_center_code"
+              placeholder="Type your center's code or name…"
+              value={centerCode}
+              onChange={setCenterCode}
+              options={centerOptions}
+            />
           </div>
         </div>
 

@@ -13,6 +13,7 @@ from app.database.database import get_db
 from app.models.user import User
 from app.schemas.org import (
     CenterDetailOut,
+    CenterDirectoryEntry,
     ContactChangeRequestOut,
     DataConflictOut,
     DirectoryReportOut,
@@ -84,6 +85,22 @@ def list_nodes(
     return org_service.list_nodes(
         db, dimension_key=dimension_key, parent_id=parent_id, skip=skip, limit=limit
     )
+
+
+@router.get("/centers-directory", response_model=list[CenterDirectoryEntry])
+def get_centers_directory(
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    """Every active center as a flat {code, name} list, uncapped -- what the
+    global center-search combobox is populated from everywhere in the app.
+    Deliberately separate from GET /nodes (which is paginated/capped at 500
+    and returns full node records) since a search box needs the whole
+    center universe up front, not one page of the general hierarchy tree.
+    Mirrors the public portal's identical directory (see
+    org_sheet_sync_service.list_active_center_directory)."""
+    entries = org_sheet_sync_service.list_active_center_directory(db)
+    return [CenterDirectoryEntry(code=e["code"], name=e["name"]) for e in entries]
 
 
 @router.get("/nodes/{node_id}", response_model=OrgNodeWithPath)

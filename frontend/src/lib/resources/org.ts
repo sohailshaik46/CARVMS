@@ -1,5 +1,5 @@
 import { api } from '../api'
-import type { CenterDetail, OrgDimension, OrgNode, OrgNodeWithPath } from '../types'
+import type { CenterDetail, CenterDirectoryEntry, OrgDimension, OrgNode, OrgNodeWithPath } from '../types'
 
 export async function listDimensions(): Promise<OrgDimension[]> {
   const { data } = await api.get<OrgDimension[]>('/org/dimensions')
@@ -23,6 +23,14 @@ export async function getNode(nodeId: number): Promise<OrgNodeWithPath> {
 
 export async function getCenterDetail(centerCode: string): Promise<CenterDetail> {
   const { data } = await api.get<CenterDetail>(`/org/centers/${encodeURIComponent(centerCode)}/detail`)
+  return data
+}
+
+/** Every active center as a flat {code, name} list, uncapped -- what the
+ * global center-search combobox is populated from (see CenterCombobox).
+ * Deliberately separate from listNodes(), which is paginated/capped. */
+export async function getCentersDirectory(): Promise<CenterDirectoryEntry[]> {
+  const { data } = await api.get<CenterDirectoryEntry[]>('/org/centers-directory')
   return data
 }
 

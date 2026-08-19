@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import nephroplusLogo from '../assets/nephroplus-logo.svg'
 import { DelayedCashCaseCard, type DelayedCashResponseFields } from '../components/delayedCash/DelayedCashCaseCard'
+import { Combobox } from '../components/ui/Combobox'
 import { EmptyState, Spinner } from '../components/ui/Feedback'
 import {
   getCenterDirectory,
@@ -17,7 +18,6 @@ import {
  * makes compared to the per-case token link, which is kept working too. */
 export function DelayedCashOpenLinkPage() {
   const [centerCode, setCenterCode] = useState('')
-  const [centerName, setCenterName] = useState('')
   const queryClient = useQueryClient()
 
   const { data: centerDirectory } = useQuery({
@@ -37,17 +37,11 @@ export function DelayedCashOpenLinkPage() {
     enabled: !!resolvedCode,
   })
 
-  function handleCenterCodeChange(value: string) {
-    setCenterCode(value)
-    const match = centerDirectory?.find((c) => c.code === value)
-    setCenterName(match ? match.name : '')
-  }
-
-  function handleCenterNameChange(value: string) {
-    setCenterName(value)
-    const match = centerDirectory?.find((c) => c.name === value)
-    setCenterCode(match ? match.code : '')
-  }
+  const centerOptions = (centerDirectory ?? []).map((c) => ({
+    value: c.code,
+    label: `${c.code} -- ${c.name}`,
+    searchText: c.name,
+  }))
 
   async function handleSubmit(centerPenaltyId: number, fields: DelayedCashResponseFields, evidence: File) {
     const result = await submitDelayedCashCaseResponseById(centerPenaltyId, fields, evidence)
@@ -69,47 +63,17 @@ export function DelayedCashOpenLinkPage() {
           <p className="mb-4 text-sm text-slate-600">
             Select your center to see any Delayed Cash Billing case that needs a response.
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="picker_center_code" className="mb-1 block text-sm font-medium text-slate-700">
-                Center Code
-              </label>
-              <input
-                id="picker_center_code"
-                list="picker-center-code-options"
-                autoComplete="off"
-                placeholder="Type to search…"
-                className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline focus:outline-2 focus:outline-brand-500/30"
-                value={centerCode}
-                onChange={(e) => handleCenterCodeChange(e.target.value)}
-              />
-              <datalist id="picker-center-code-options">
-                {(centerDirectory ?? []).map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.name}
-                  </option>
-                ))}
-              </datalist>
-            </div>
-            <div>
-              <label htmlFor="picker_center_name" className="mb-1 block text-sm font-medium text-slate-700">
-                Center Name
-              </label>
-              <input
-                id="picker_center_name"
-                list="picker-center-name-options"
-                autoComplete="off"
-                placeholder="Type to search…"
-                className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline focus:outline-2 focus:outline-brand-500/30"
-                value={centerName}
-                onChange={(e) => handleCenterNameChange(e.target.value)}
-              />
-              <datalist id="picker-center-name-options">
-                {(centerDirectory ?? []).map((c) => (
-                  <option key={c.code} value={c.name} />
-                ))}
-              </datalist>
-            </div>
+          <div>
+            <label htmlFor="picker_center_code" className="mb-1 block text-sm font-medium text-slate-700">
+              Center Code or Name
+            </label>
+            <Combobox
+              id="picker_center_code"
+              placeholder="Type your center's code or name…"
+              value={centerCode}
+              onChange={setCenterCode}
+              options={centerOptions}
+            />
           </div>
         </div>
 

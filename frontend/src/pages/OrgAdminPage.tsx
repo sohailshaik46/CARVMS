@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardBody, CardHeader } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { Combobox } from '../components/ui/Combobox'
 import { SelectField, TextField } from '../components/ui/Field'
 import { ErrorBanner, Spinner } from '../components/ui/Feedback'
 import { HeroBanner } from '../components/ui/HeroBanner'
@@ -10,7 +11,15 @@ import { NetworkNodesIllustration } from '../components/ui/Illustrations'
 import { Tooltip } from '../components/ui/Tooltip'
 import { useToast } from '../components/ui/ToastProvider'
 import { apiErrorMessage } from '../lib/api'
-import { createDimension, createNode, getCenterDetail, listDimensions, listNodes, updateNode } from '../lib/resources/org'
+import {
+  createDimension,
+  createNode,
+  getCenterDetail,
+  getCentersDirectory,
+  listDimensions,
+  listNodes,
+  updateNode,
+} from '../lib/resources/org'
 import type { CenterDetail, OrgNode } from '../lib/types'
 
 export function OrgAdminPage() {
@@ -155,12 +164,19 @@ function CenterLookupCard() {
   const [input, setInput] = useState('')
   const [centerCode, setCenterCode] = useState<string | null>(null)
 
+  const { data: directory } = useQuery({ queryKey: ['org-centers-directory'], queryFn: getCentersDirectory })
+
   const { data, isFetching, error, isError } = useQuery({
     queryKey: ['org-center-detail', centerCode],
     queryFn: () => getCenterDetail(centerCode as string),
     enabled: centerCode !== null,
     retry: false,
   })
+
+  const options = (directory ?? [])
+    .slice()
+    .sort((a, b) => a.code.localeCompare(b.code))
+    .map((c) => ({ value: c.code, label: `${c.code} -- ${c.name}`, searchText: c.name }))
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -173,21 +189,29 @@ function CenterLookupCard() {
       <CardHeader
         title="Center Lookup"
         actions={
-          <Tooltip text="Look up everything about one center by its exact code -- who's the Center Manager (and their NPID/email), which cluster and zone it sits under, and who to escalate to at each level (Cluster Manager, Zonal Manager, Half Country Head).">
+          <Tooltip text="Look up everything about one center -- who's the Center Manager (and their NPID/email), which cluster and zone it sits under, and who to escalate to at each level (Cluster Manager, Zonal Manager, Half Country Head).">
             <span className="text-xs text-slate-400 dark:text-slate-500">What is this?</span>
           </Tooltip>
         }
       />
       <CardBody className="space-y-4">
         <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
-          <div className="w-64">
-            <TextField
-              id="center-lookup-code"
-              label="Center Code"
-              placeholder="e.g. 173-AP-ONG-PPP-C"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-            />
+          <div className="w-72">
+            <label htmlFor="center-lookup-code" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Center Code or Name
+            </label>
+            <Tooltip text="Type any part of a center's code or name (e.g. just '173') to search -- pick a match from the dropdown, or type a full code and press Enter/Look up.">
+              <Combobox
+                id="center-lookup-code"
+                placeholder="e.g. 173 or Ongole…"
+                value={input}
+                onChange={setInput}
+                onCommit={(code) => {
+                  if (code) setCenterCode(code)
+                }}
+                options={options}
+              />
+            </Tooltip>
           </div>
           <Button type="submit" isLoading={isFetching}>
             Look up
