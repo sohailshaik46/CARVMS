@@ -10,12 +10,26 @@ import type {
   WrcCloseBatchResult,
   WrcIncidentNotifyResult,
   WrcNoRemarkIncident,
+  WrcRemoteSyncReport,
   WrcResponseLinkDetail,
   WrcRolePenalty,
   WrcRule,
   WeeklyRevenueClosureBatch,
   WrcUploadResult,
 } from '../types'
+
+/** Manual WRC sync against REMOTE_DATABASE_URL -- never automatic.
+ * Mirrors pushDcbToRemote/pullDcbFromRemote exactly -- see
+ * weekly_revenue_remote_sync_service for the full safety contract. */
+export async function pushWrcToRemote(commit: boolean): Promise<WrcRemoteSyncReport> {
+  const { data } = await api.post<WrcRemoteSyncReport>('/weekly-revenue-closure/sync/remote/push', null, { params: { commit } })
+  return data
+}
+
+export async function pullWrcFromRemote(commit: boolean): Promise<WrcRemoteSyncReport> {
+  const { data } = await api.post<WrcRemoteSyncReport>('/weekly-revenue-closure/sync/remote/pull', null, { params: { commit } })
+  return data
+}
 
 // ---------- rule governance ----------
 

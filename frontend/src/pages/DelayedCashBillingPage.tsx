@@ -33,6 +33,8 @@ import {
   listContactChangeRequests,
   notifyBill,
   publishBatch,
+  pullDcbFromRemote,
+  pushDcbToRemote,
   rejectContactChangeRequest,
   revokeBillReview,
   reviewBill,
@@ -45,6 +47,7 @@ import {
   reevaluateAllDcb,
   reevaluateDcbResponse,
 } from '../lib/resources/autoValidation'
+import { RemoteSyncCard, type RemoteSyncSummary } from '../components/ui/RemoteSyncCard'
 import type {
   AutoValidationBucket,
   AutoValidationResponse,
@@ -52,10 +55,38 @@ import type {
   BillReviewDecision,
   ContactChangeRequest,
   DcbCenterBreakdown,
+  DcbRemoteSyncReport,
   DelayedCashBill,
   DelayedCashUploadBatch,
   UploadBatchResult,
 } from '../lib/types'
+
+function dcbReportToSummary(report: DcbRemoteSyncReport): RemoteSyncSummary {
+  return {
+    created: report.rules_created + report.batches_created + report.bills_created + report.center_penalties_created,
+    updated: report.rules_updated + report.batches_updated + report.bills_updated + report.center_penalties_updated,
+    unchanged:
+      report.rules_unchanged + report.batches_unchanged + report.bills_unchanged + report.center_penalties_unchanged,
+    changedList: report.changed_summary,
+  }
+}
+
+function RemoteSyncCardForDcb() {
+  return (
+    <RemoteSyncCard
+      title="Data Sync with Render"
+      whatIsThisTooltip="Manual only -- nothing here ever runs automatically. Push sends THIS computer's Delayed Cash Billing data (batches, bills, review decisions, response links) up to Render; Pull brings Render's down to this computer. Neither ever deletes anything, and neither ever overwrites a response link already emailed to a center or a review decision already made -- those only ever get filled in if the receiving side has none yet. Each button previews the exact changes first (writes nothing); a second click actually applies them."
+      pushLabel="Push to Render"
+      pushDescription="Send this computer's Delayed Cash Billing data up to the live Render database."
+      pullLabel="Pull from Render"
+      pullDescription="Bring Render's live Delayed Cash Billing data down to this computer."
+      onPreviewPush={() => pushDcbToRemote(false).then(dcbReportToSummary)}
+      onApplyPush={() => pushDcbToRemote(true).then(dcbReportToSummary)}
+      onPreviewPull={() => pullDcbFromRemote(false).then(dcbReportToSummary)}
+      onApplyPull={() => pullDcbFromRemote(true).then(dcbReportToSummary)}
+    />
+  )
+}
 
 type Tab = 'batches' | 'review-queue' | 'auto-validation' | 'action-taken' | 'centers-activity' | 'notifications'
 const TAB_VALUES: Tab[] = ['batches', 'review-queue', 'auto-validation', 'action-taken', 'centers-activity', 'notifications']
@@ -163,6 +194,8 @@ export function DelayedCashBillingPage() {
           </button>
         ))}
       </div>
+
+      <RemoteSyncCardForDcb />
 
       {tab === 'batches' && (
         <>

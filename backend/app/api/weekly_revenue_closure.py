@@ -7,7 +7,7 @@ was built against.
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
@@ -40,13 +40,17 @@ from app.schemas.weekly_revenue_closure import (
     UploadBatchResultOut,
     WeeklyRevenueClosureBatchOut,
     WeeklyRevenueClosureRuleOut,
+    WrcRemoteSyncReportOut,
 )
+from app.services import org_master_remote_sync_service as remote_sync_common
 from app.services import storage_service
 from app.services import weekly_revenue_closure_export_service as export_service
 from app.services import weekly_revenue_closure_service as calc_service
 from app.services import weekly_revenue_closure_upload_service as upload_service
 from app.services import weekly_revenue_notification_service as notification_service
+from app.services import weekly_revenue_remote_sync_service as wrc_remote_sync_service
 from app.services import weekly_revenue_response_service as response_service
+from app.services.remote_sync_helpers import resolve_current_admin_target_id
 
 router = APIRouter(prefix="/weekly-revenue-closure", tags=["Weekly Revenue Closure"])
 
@@ -519,3 +523,89 @@ def notify_incident(
     except notification_service.InvalidNotifyRequestError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return IncidentNotifyOut(sent=result.sent, reason=result.reason)
+
+
+# ---------------------------------------------------------------------------
+# Manual WRC sync against REMOTE_DATABASE_URL (local <-> Render) -- never
+# automatic, see weekly_revenue_remote_sync_service's module docstring.
+# Admin-only (not the wider VIGILANCE_ROLES) given the blast radius of a
+# real write to the live database.
+# ---------------------------------------------------------------------------
+
+
+def _wrc_remote_sync_report_to_schema(report) -> WrcRemoteSyncReportOut:
+    return WrcRemoteSyncReportOut(
+        rules_created=report.rules_created,
+        rules_updated=report.rules_updated,
+        rules_unchanged=report.rules_unchanged,
+        batches_created=report.batches_created,
+        batches_updated=report.batches_updated,
+        batches_unchanged=report.batches_unchanged,
+        bill_incidents_created=report.bill_incidents_created,
+        bill_incidents_updated=report.bill_incidents_updated,
+        bill_incidents_unchanged=report.bill_incidents_unchanged,
+        no_remark_incidents_created=report.no_remark_incidents_created,
+        no_remark_incidents_updated=report.no_remark_incidents_updated,
+        no_remark_incidents_unchanged=report.no_remark_incidents_unchanged,
+        center_penalties_created=report.center_penalties_created,
+        center_penalties_updated=report.center_penalties_updated,
+        center_penalties_unchanged=report.center_penalties_unchanged,
+        role_penalties_created=report.role_penalties_created,
+        role_penalties_updated=report.role_penalties_updated,
+        role_penalties_unchanged=report.role_penalties_unchanged,
+        center_cases_created=report.center_cases_created,
+        center_cases_updated=report.center_cases_updated,
+        center_cases_unchanged=report.center_cases_unchanged,
+        changed_summary=report.changed_summary,
+        committed=report.committed,
+    )
+
+
+@router.post("/sync/remote/push", response_model=WrcRemoteSyncReportOut)
+def push_wrc_to_remote(
+    commit: bool = Query(False),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_role(roles.ADMIN)),
+):
+    """Copies THIS instance's Weekly Revenue Closure data (rules, batches,
+    bill/no-remark incidents incl. review decisions, center + role
+    penalties, center cases incl. response tokens) INTO
+    REMOTE_DATABASE_URL. commit=false (the default) previews the diff and
+    writes nothing. Never deletes anything remote, and never overwrites a
+    response token or a review decision already set there -- see
+    weekly_revenue_remote_sync_service's module docstring."""
+    try:
+        remote_db = remote_sync_common.open_remote_session()
+    except remote_sync_common.RemoteSyncNotConfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except remote_sync_common.RemoteSyncMisconfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        fallback_id = resolve_current_admin_target_id(admin, remote_db)
+        report = wrc_remote_sync_service.sync_weekly_revenue(db, remote_db, commit=commit, current_admin_target_id=fallback_id)
+    finally:
+        remote_db.close()
+    return _wrc_remote_sync_report_to_schema(report)
+
+
+@router.post("/sync/remote/pull", response_model=WrcRemoteSyncReportOut)
+def pull_wrc_from_remote(
+    commit: bool = Query(False),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_role(roles.ADMIN)),
+):
+    """The reverse of push: copies REMOTE_DATABASE_URL's Weekly Revenue
+    Closure data INTO this instance. Same commit=false preview-first /
+    never-deletes / never-overwrites-a-real-decision contract as push."""
+    try:
+        remote_db = remote_sync_common.open_remote_session()
+    except remote_sync_common.RemoteSyncNotConfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except remote_sync_common.RemoteSyncMisconfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        fallback_id = resolve_current_admin_target_id(admin, db)
+        report = wrc_remote_sync_service.sync_weekly_revenue(remote_db, db, commit=commit, current_admin_target_id=fallback_id)
+    finally:
+        remote_db.close()
+    return _wrc_remote_sync_report_to_schema(report)

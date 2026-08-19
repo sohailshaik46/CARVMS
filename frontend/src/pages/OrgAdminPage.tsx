@@ -8,6 +8,7 @@ import { SelectField, TextField } from '../components/ui/Field'
 import { ErrorBanner, Spinner } from '../components/ui/Feedback'
 import { HeroBanner } from '../components/ui/HeroBanner'
 import { NetworkNodesIllustration } from '../components/ui/Illustrations'
+import { RemoteSyncCard, type RemoteSyncSummary } from '../components/ui/RemoteSyncCard'
 import { Tooltip } from '../components/ui/Tooltip'
 import { useToast } from '../components/ui/ToastProvider'
 import { apiErrorMessage } from '../lib/api'
@@ -79,7 +80,7 @@ export function OrgAdminPage() {
 
       <CenterLookupCard />
 
-      <RemoteSyncCard />
+      <RemoteSyncCardForOrgMaster />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
@@ -237,163 +238,29 @@ function CenterLookupCard() {
  * writes, then "Apply" (commit=true) is the only thing that actually
  * writes -- and only after a preview has been run, so nothing happens
  * from a single accidental click. Never deletes anything either way. */
-function RemoteSyncCard() {
-  const { showToast } = useToast()
-  const [pushPreview, setPushPreview] = useState<RemoteSyncReport | null>(null)
-  const [pullPreview, setPullPreview] = useState<RemoteSyncReport | null>(null)
-  const [notConfigured, setNotConfigured] = useState<string | null>(null)
-
-  function handleError(err: unknown) {
-    const message = apiErrorMessage(err, 'Sync failed')
-    setNotConfigured(message)
-    showToast(message, 'error')
+function orgMasterReportToSummary(report: RemoteSyncReport): RemoteSyncSummary {
+  return {
+    created: report.dimensions_created + report.nodes_created,
+    updated: report.dimensions_updated + report.nodes_updated,
+    unchanged: report.dimensions_unchanged + report.nodes_unchanged,
+    changedList: report.changed_node_names,
   }
-
-  const pushPreviewMutation = useMutation({
-    mutationFn: () => pushOrgMasterToRemote(false),
-    onSuccess: (report) => {
-      setNotConfigured(null)
-      setPushPreview(report)
-    },
-    onError: handleError,
-  })
-  const pushApplyMutation = useMutation({
-    mutationFn: () => pushOrgMasterToRemote(true),
-    onSuccess: (report) => {
-      setPushPreview(null)
-      showToast(
-        `Pushed to Render: ${report.dimensions_created + report.nodes_created} created, ${report.dimensions_updated + report.nodes_updated} updated.`,
-      )
-    },
-    onError: handleError,
-  })
-
-  const pullPreviewMutation = useMutation({
-    mutationFn: () => pullOrgMasterFromRemote(false),
-    onSuccess: (report) => {
-      setNotConfigured(null)
-      setPullPreview(report)
-    },
-    onError: handleError,
-  })
-  const pullApplyMutation = useMutation({
-    mutationFn: () => pullOrgMasterFromRemote(true),
-    onSuccess: (report) => {
-      setPullPreview(null)
-      showToast(
-        `Pulled from Render: ${report.dimensions_created + report.nodes_created} created, ${report.dimensions_updated + report.nodes_updated} updated.`,
-      )
-    },
-    onError: handleError,
-  })
-
-  return (
-    <Card>
-      <CardHeader
-        title="Data Sync with Render"
-        actions={
-          <Tooltip text="Manual only -- nothing here ever runs automatically or in the background. Push copies THIS computer's Org Master (centers, zones, clusters, managers) up to the live Render database; Pull copies Render's Org Master down to this computer. Neither one ever deletes anything on either side -- a row missing on one side is only ever added, never removed from the side that has it. Each button previews the exact changes first (writes nothing); a second click actually applies them.">
-            <span className="text-xs text-slate-400 dark:text-slate-500">What is this?</span>
-          </Tooltip>
-        }
-      />
-      <CardBody className="space-y-4">
-        {notConfigured && <ErrorBanner message={notConfigured} />}
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <RemoteSyncDirection
-            title="Push to Render"
-            description="Send this computer's Org Master up to the live Render database."
-            preview={pushPreview}
-            isPreviewing={pushPreviewMutation.isPending}
-            isApplying={pushApplyMutation.isPending}
-            onPreview={() => pushPreviewMutation.mutate()}
-            onApply={() => pushApplyMutation.mutate()}
-            onCancel={() => setPushPreview(null)}
-          />
-          <RemoteSyncDirection
-            title="Pull from Render"
-            description="Bring Render's live Org Master down to this computer."
-            preview={pullPreview}
-            isPreviewing={pullPreviewMutation.isPending}
-            isApplying={pullApplyMutation.isPending}
-            onPreview={() => pullPreviewMutation.mutate()}
-            onApply={() => pullApplyMutation.mutate()}
-            onCancel={() => setPullPreview(null)}
-          />
-        </div>
-      </CardBody>
-    </Card>
-  )
 }
 
-function RemoteSyncDirection({
-  title,
-  description,
-  preview,
-  isPreviewing,
-  isApplying,
-  onPreview,
-  onApply,
-  onCancel,
-}: {
-  title: string
-  description: string
-  preview: RemoteSyncReport | null
-  isPreviewing: boolean
-  isApplying: boolean
-  onPreview: () => void
-  onApply: () => void
-  onCancel: () => void
-}) {
-  const totalChanges = preview
-    ? preview.dimensions_created + preview.dimensions_updated + preview.nodes_created + preview.nodes_updated
-    : 0
-
+function RemoteSyncCardForOrgMaster() {
   return (
-    <div className="rounded-md border border-slate-200 p-3 dark:border-slate-700">
-      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{title}</p>
-      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{description}</p>
-
-      {!preview && (
-        <Button className="mt-3" variant="secondary" isLoading={isPreviewing} onClick={onPreview}>
-          Preview
-        </Button>
-      )}
-
-      {preview && (
-        <div className="mt-3 space-y-2">
-          <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-            <p className="font-semibold">Nothing has been written yet -- this is a preview.</p>
-            <p className="mt-1">
-              {preview.dimensions_created + preview.nodes_created} row(s) would be created,{' '}
-              {preview.dimensions_updated + preview.nodes_updated} would be updated,{' '}
-              {preview.dimensions_unchanged + preview.nodes_unchanged} are already identical.
-            </p>
-            {preview.changed_node_names.length > 0 && (
-              <ul className="mt-2 max-h-32 list-disc space-y-0.5 overflow-y-auto pl-4">
-                {preview.changed_node_names.map((name, i) => (
-                  <li key={i}>{name}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="danger"
-              isLoading={isApplying}
-              disabled={totalChanges === 0}
-              onClick={onApply}
-            >
-              Apply {totalChanges} change(s)
-            </Button>
-            <Button variant="secondary" onClick={onCancel} disabled={isApplying}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+    <RemoteSyncCard
+      title="Data Sync with Render"
+      whatIsThisTooltip="Manual only -- nothing here ever runs automatically or in the background. Push copies THIS computer's Org Master (centers, zones, clusters, managers) up to the live Render database; Pull copies Render's Org Master down to this computer. Neither one ever deletes anything on either side -- a row missing on one side is only ever added, never removed from the side that has it. Each button previews the exact changes first (writes nothing); a second click actually applies them."
+      pushLabel="Push to Render"
+      pushDescription="Send this computer's Org Master up to the live Render database."
+      pullLabel="Pull from Render"
+      pullDescription="Bring Render's live Org Master down to this computer."
+      onPreviewPush={() => pushOrgMasterToRemote(false).then(orgMasterReportToSummary)}
+      onApplyPush={() => pushOrgMasterToRemote(true).then(orgMasterReportToSummary)}
+      onPreviewPull={() => pullOrgMasterFromRemote(false).then(orgMasterReportToSummary)}
+      onApplyPull={() => pullOrgMasterFromRemote(true).then(orgMasterReportToSummary)}
+    />
   )
 }
 

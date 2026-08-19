@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
@@ -27,6 +27,7 @@ from app.schemas.delayed_cash_billing import (
     CenterActivityOut,
     DcbBatchSummaryOut,
     DcbCenterBreakdownOut,
+    DcbRemoteSyncReportOut,
     DelayedCashCenterPenaltyOut,
     DelayedCashRuleOut,
     ResponseLinkDetailOut,
@@ -38,8 +39,11 @@ from app.schemas.delayed_cash_billing import (
 from app.services import delayed_cash_export_service as export_service
 from app.services import delayed_cash_notification_service as notification_service
 from app.services import delayed_cash_penalty_service as calc_service
+from app.services import delayed_cash_remote_sync_service as dcb_remote_sync_service
 from app.services import delayed_cash_response_service as response_service
 from app.services import delayed_cash_upload_service as upload_service
+from app.services import org_master_remote_sync_service as remote_sync_common
+from app.services.remote_sync_helpers import resolve_current_admin_target_id
 
 router = APIRouter(prefix="/delayed-cash", tags=["Delayed Cash Billing"])
 
@@ -489,3 +493,79 @@ def notify_bill(
     except notification_service.InvalidNotifyRequestError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return BillNotifyOut(sent=result.sent, reason=result.reason)
+
+
+# ---------------------------------------------------------------------------
+# Manual DCB sync against REMOTE_DATABASE_URL (local <-> Render) -- never
+# automatic, see delayed_cash_remote_sync_service's module docstring.
+# Admin-only (not the wider VIGILANCE_ROLES) given the blast radius of a
+# real write to the live database.
+# ---------------------------------------------------------------------------
+
+
+def _dcb_remote_sync_report_to_schema(report) -> DcbRemoteSyncReportOut:
+    return DcbRemoteSyncReportOut(
+        rules_created=report.rules_created,
+        rules_updated=report.rules_updated,
+        rules_unchanged=report.rules_unchanged,
+        batches_created=report.batches_created,
+        batches_updated=report.batches_updated,
+        batches_unchanged=report.batches_unchanged,
+        bills_created=report.bills_created,
+        bills_updated=report.bills_updated,
+        bills_unchanged=report.bills_unchanged,
+        center_penalties_created=report.center_penalties_created,
+        center_penalties_updated=report.center_penalties_updated,
+        center_penalties_unchanged=report.center_penalties_unchanged,
+        changed_summary=report.changed_summary,
+        committed=report.committed,
+    )
+
+
+@router.post("/sync/remote/push", response_model=DcbRemoteSyncReportOut)
+def push_dcb_to_remote(
+    commit: bool = Query(False),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_role(roles.ADMIN)),
+):
+    """Copies THIS instance's Delayed Cash Billing data (rules, batches,
+    bills incl. review decisions, center penalties incl. response tokens)
+    INTO REMOTE_DATABASE_URL. commit=false (the default) previews the diff
+    and writes nothing. Never deletes anything on the remote side, and
+    never overwrites a response token or a review decision already set
+    there -- see delayed_cash_remote_sync_service's module docstring."""
+    try:
+        remote_db = remote_sync_common.open_remote_session()
+    except remote_sync_common.RemoteSyncNotConfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except remote_sync_common.RemoteSyncMisconfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        fallback_id = resolve_current_admin_target_id(admin, remote_db)
+        report = dcb_remote_sync_service.sync_delayed_cash(db, remote_db, commit=commit, current_admin_target_id=fallback_id)
+    finally:
+        remote_db.close()
+    return _dcb_remote_sync_report_to_schema(report)
+
+
+@router.post("/sync/remote/pull", response_model=DcbRemoteSyncReportOut)
+def pull_dcb_from_remote(
+    commit: bool = Query(False),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_role(roles.ADMIN)),
+):
+    """The reverse of push: copies REMOTE_DATABASE_URL's Delayed Cash
+    Billing data INTO this instance. Same commit=false preview-first /
+    never-deletes / never-overwrites-a-real-decision contract as push."""
+    try:
+        remote_db = remote_sync_common.open_remote_session()
+    except remote_sync_common.RemoteSyncNotConfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except remote_sync_common.RemoteSyncMisconfiguredError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    try:
+        fallback_id = resolve_current_admin_target_id(admin, db)
+        report = dcb_remote_sync_service.sync_delayed_cash(remote_db, db, commit=commit, current_admin_target_id=fallback_id)
+    finally:
+        remote_db.close()
+    return _dcb_remote_sync_report_to_schema(report)

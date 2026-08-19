@@ -251,3 +251,29 @@ class IncidentNotifyIn(BaseModel):
 class IncidentNotifyOut(BaseModel):
     sent: bool
     reason: Optional[str] = None
+
+
+class WrcRemoteSyncReportOut(BaseModel):
+    rules_created: int
+    rules_updated: int
+    rules_unchanged: int
+    batches_created: int
+    batches_updated: int
+    batches_unchanged: int
+    bill_incidents_created: int
+    bill_incidents_updated: int
+    bill_incidents_unchanged: int
+    no_remark_incidents_created: int
+    no_remark_incidents_updated: int
+    no_remark_incidents_unchanged: int
+    center_penalties_created: int
+    center_penalties_updated: int
+    center_penalties_unchanged: int
+    role_penalties_created: int
+    role_penalties_updated: int
+    role_penalties_unchanged: int
+    center_cases_created: int
+    center_cases_updated: int
+    center_cases_unchanged: int
+    changed_summary: list[str]
+    committed: bool

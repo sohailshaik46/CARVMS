@@ -239,3 +239,20 @@ class BillNotifyIn(BaseModel):
 class BillNotifyOut(BaseModel):
     sent: bool
     reason: Optional[str] = None
+
+
+class DcbRemoteSyncReportOut(BaseModel):
+    rules_created: int
+    rules_updated: int
+    rules_unchanged: int
+    batches_created: int
+    batches_updated: int
+    batches_unchanged: int
+    bills_created: int
+    bills_updated: int
+    bills_unchanged: int
+    center_penalties_created: int
+    center_penalties_updated: int
+    center_penalties_unchanged: int
+    changed_summary: list[str]
+    committed: bool

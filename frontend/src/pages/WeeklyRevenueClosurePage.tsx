@@ -37,6 +37,8 @@ import {
   markNoRemarkReceived,
   notifyIncident,
   publishLinksForBatch,
+  pullWrcFromRemote,
+  pushWrcToRemote,
   reviewBillIncident,
   uploadBatch,
 } from '../lib/resources/weeklyRevenueClosure'
@@ -47,6 +49,7 @@ import {
   reevaluateAllWrc,
   reevaluateWrcResponse,
 } from '../lib/resources/autoValidation'
+import { RemoteSyncCard, type RemoteSyncSummary } from '../components/ui/RemoteSyncCard'
 import type {
   AutoValidationBucket,
   AutoValidationResponse,
@@ -56,8 +59,56 @@ import type {
   WrcBillIncident,
   WrcCenterBreakdown,
   WrcIncidentType,
+  WrcRemoteSyncReport,
   WrcUploadResult,
 } from '../lib/types'
+
+function wrcReportToSummary(report: WrcRemoteSyncReport): RemoteSyncSummary {
+  return {
+    created:
+      report.rules_created +
+      report.batches_created +
+      report.bill_incidents_created +
+      report.no_remark_incidents_created +
+      report.center_penalties_created +
+      report.role_penalties_created +
+      report.center_cases_created,
+    updated:
+      report.rules_updated +
+      report.batches_updated +
+      report.bill_incidents_updated +
+      report.no_remark_incidents_updated +
+      report.center_penalties_updated +
+      report.role_penalties_updated +
+      report.center_cases_updated,
+    unchanged:
+      report.rules_unchanged +
+      report.batches_unchanged +
+      report.bill_incidents_unchanged +
+      report.no_remark_incidents_unchanged +
+      report.center_penalties_unchanged +
+      report.role_penalties_unchanged +
+      report.center_cases_unchanged,
+    changedList: report.changed_summary,
+  }
+}
+
+function RemoteSyncCardForWrc() {
+  return (
+    <RemoteSyncCard
+      title="Data Sync with Render"
+      whatIsThisTooltip="Manual only -- nothing here ever runs automatically. Push sends THIS computer's Weekly Revenue Closure data (batches, incidents, review decisions, response links) up to Render; Pull brings Render's down to this computer. Neither ever deletes anything, and neither ever overwrites a response link already emailed to a center or a review decision already made -- those only ever get filled in if the receiving side has none yet. Each button previews the exact changes first (writes nothing); a second click actually applies them."
+      pushLabel="Push to Render"
+      pushDescription="Send this computer's Weekly Revenue Closure data up to the live Render database."
+      pullLabel="Pull from Render"
+      pullDescription="Bring Render's live Weekly Revenue Closure data down to this computer."
+      onPreviewPush={() => pushWrcToRemote(false).then(wrcReportToSummary)}
+      onApplyPush={() => pushWrcToRemote(true).then(wrcReportToSummary)}
+      onPreviewPull={() => pullWrcFromRemote(false).then(wrcReportToSummary)}
+      onApplyPull={() => pullWrcFromRemote(true).then(wrcReportToSummary)}
+    />
+  )
+}
 
 type Tab = 'batches' | 'review-queue' | 'auto-validation' | 'action-taken' | 'centers-activity' | 'notifications'
 const TAB_VALUES: Tab[] = ['batches', 'review-queue', 'auto-validation', 'action-taken', 'centers-activity', 'notifications']
@@ -209,6 +260,8 @@ export function WeeklyRevenueClosurePage() {
           </button>
         ))}
       </div>
+
+      <RemoteSyncCardForWrc />
 
       {tab === 'batches' && (
         <>

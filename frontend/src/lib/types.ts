@@ -361,6 +361,49 @@ export interface RemoteSyncReport {
   committed: boolean
 }
 
+export interface DcbRemoteSyncReport {
+  rules_created: number
+  rules_updated: number
+  rules_unchanged: number
+  batches_created: number
+  batches_updated: number
+  batches_unchanged: number
+  bills_created: number
+  bills_updated: number
+  bills_unchanged: number
+  center_penalties_created: number
+  center_penalties_updated: number
+  center_penalties_unchanged: number
+  changed_summary: string[]
+  committed: boolean
+}
+
+export interface WrcRemoteSyncReport {
+  rules_created: number
+  rules_updated: number
+  rules_unchanged: number
+  batches_created: number
+  batches_updated: number
+  batches_unchanged: number
+  bill_incidents_created: number
+  bill_incidents_updated: number
+  bill_incidents_unchanged: number
+  no_remark_incidents_created: number
+  no_remark_incidents_updated: number
+  no_remark_incidents_unchanged: number
+  center_penalties_created: number
+  center_penalties_updated: number
+  center_penalties_unchanged: number
+  role_penalties_created: number
+  role_penalties_updated: number
+  role_penalties_unchanged: number
+  center_cases_created: number
+  center_cases_updated: number
+  center_cases_unchanged: number
+  changed_summary: string[]
+  committed: boolean
+}
+
 // Single shared response link -- same shape as PublicDelayedCashCase, plus
 // the case's own id (needed to submit against it without a token).
 export interface PublicOpenDelayedCashCase extends PublicDelayedCashCase {

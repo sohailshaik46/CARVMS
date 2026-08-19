@@ -9,12 +9,28 @@ import type {
   DcbCaseResponse,
   DcbCenterBreakdown,
   DcbCenterActivity,
+  DcbRemoteSyncReport,
   DelayedCashBill,
   DelayedCashCenterPenalty,
   DelayedCashRule,
   DelayedCashUploadBatch,
   UploadBatchResult,
 } from '../types'
+
+/** Manual DCB sync against REMOTE_DATABASE_URL -- never automatic.
+ * commit=false (the default) previews the diff and writes nothing; call
+ * again with commit=true once the preview looks right. Never deletes
+ * anything, and never overwrites a response token or a review decision
+ * already set on the receiving side (see delayed_cash_remote_sync_service). */
+export async function pushDcbToRemote(commit: boolean): Promise<DcbRemoteSyncReport> {
+  const { data } = await api.post<DcbRemoteSyncReport>('/delayed-cash/sync/remote/push', null, { params: { commit } })
+  return data
+}
+
+export async function pullDcbFromRemote(commit: boolean): Promise<DcbRemoteSyncReport> {
+  const { data } = await api.post<DcbRemoteSyncReport>('/delayed-cash/sync/remote/pull', null, { params: { commit } })
+  return data
+}
 
 // ---------- rule governance ----------
 
