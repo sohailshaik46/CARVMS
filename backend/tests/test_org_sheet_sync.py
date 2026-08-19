@@ -343,3 +343,146 @@ def test_from_sheet_endpoint_surfaces_401_as_clear_error(client, monkeypatch):
     resp = client.post("/org/sync/centers-master/from-sheet", headers=_auth(token))
     assert resp.status_code == 502
     assert "shared" in resp.json()["detail"].lower() or "401" in resp.json()["detail"]
+
+
+# ---------- center-email directory (Vigilance's minimal sheet) ----------
+
+# Real header exactly as it appears in the Vigilance sheet -- deliberately
+# unrelated column ORDER and NAMING to sync_center_directory's, proving the
+# header-alias matching (not position) is what actually resolves columns.
+EMAIL_SHEET_HEADER = ("S.No", "MIS Code", "Center name as in BO", "Region /Zone", "Email ID")
+
+
+def _seed_one_center(db) -> str:
+    """Uses the existing hierarchy fixture so there's a real center to
+    target -- returns its center_code."""
+    sync_svc.sync_centers_master(db, _load_fixture(), delimiter="\t")
+    return "106-BH-PTN-KHM-C"
+
+
+def test_sync_center_emails_updates_matching_center():
+    db = TestingSessionLocal()
+    try:
+        code = _seed_one_center(db)
+        before = org_service.get_node_by_external_code(db, code)
+        assert before.manager_email == "bh.ptn.khm.cm@nephroplus.com"  # from the hierarchy fixture
+
+        rows = [
+            EMAIL_SHEET_HEADER,
+            (1, code, "Khemnichak, Patna", "Bihar", "bh.ptn.khm@nephroplus.com"),
+        ]
+        report = sync_svc.sync_center_emails(db, rows)
+
+        assert report.total_rows == 1
+        assert report.updated == 1
+        assert report.unchanged == 0
+        assert report.skipped == []
+
+        after = org_service.get_node_by_external_code(db, code)
+        assert after.manager_email == "bh.ptn.khm@nephroplus.com"
+    finally:
+        db.close()
+
+
+def test_sync_center_emails_is_idempotent_when_email_unchanged():
+    db = TestingSessionLocal()
+    try:
+        code = _seed_one_center(db)
+        rows = [EMAIL_SHEET_HEADER, (1, code, "Khemnichak, Patna", "Bihar", "bh.ptn.khm.cm@nephroplus.com")]
+        report = sync_svc.sync_center_emails(db, rows)
+        assert report.updated == 0
+        assert report.unchanged == 1
+    finally:
+        db.close()
+
+
+def test_sync_center_emails_flags_unknown_center_code_without_creating_one():
+    db = TestingSessionLocal()
+    try:
+        _seed_one_center(db)
+        rows = [EMAIL_SHEET_HEADER, (1, "999-NOPE-C", "Nowhere Center", "Nowhere", "nope@nephroplus.com")]
+        report = sync_svc.sync_center_emails(db, rows)
+
+        assert report.total_rows == 1
+        assert report.updated == 0
+        assert len(report.skipped) == 1
+        assert "no matching center" in report.skipped[0].reason.lower()
+        assert org_service.get_node_by_external_code(db, "999-NOPE-C") is None
+    finally:
+        db.close()
+
+
+def test_sync_center_emails_flags_missing_or_invalid_email():
+    db = TestingSessionLocal()
+    try:
+        code = _seed_one_center(db)
+        rows = [
+            EMAIL_SHEET_HEADER,
+            (1, code, "Khemnichak, Patna", "Bihar", None),
+            (2, code, "Khemnichak, Patna", "Bihar", "not-an-email"),
+        ]
+        report = sync_svc.sync_center_emails(db, rows)
+        assert report.updated == 0
+        assert len(report.skipped) == 2
+    finally:
+        db.close()
+
+
+def test_sync_center_emails_skips_missing_center_code():
+    db = TestingSessionLocal()
+    try:
+        _seed_one_center(db)
+        rows = [EMAIL_SHEET_HEADER, (1, None, "Some Center", "Bihar", "someone@nephroplus.com")]
+        report = sync_svc.sync_center_emails(db, rows)
+        assert report.updated == 0
+        assert len(report.skipped) == 1
+        assert "missing center code" in report.skipped[0].reason.lower()
+    finally:
+        db.close()
+
+
+def test_sync_center_emails_raises_clear_error_when_required_columns_missing():
+    db = TestingSessionLocal()
+    try:
+        rows = [("S.No", "Something Else"), (1, "irrelevant")]
+        raised = False
+        try:
+            sync_svc.sync_center_emails(db, rows)
+        except ValueError as exc:
+            raised = True
+            assert "column" in str(exc).lower()
+        assert raised
+    finally:
+        db.close()
+
+
+def test_only_admin_can_upload_center_emails(client):
+    _register(client, "email_sync_plain", "email_sync_plain@example.com")
+    token = _login(client, "email_sync_plain")
+    resp = client.post(
+        "/org/sync/center-emails",
+        files={"file": ("emails.csv", "MIS Code,Email ID\n999-X,x@example.com\n", "text/csv")},
+        headers=_auth(token),
+    )
+    assert resp.status_code == 403
+
+
+def test_admin_can_upload_center_emails_csv_and_get_report(client):
+    db = TestingSessionLocal()
+    try:
+        code = _seed_one_center(db)
+    finally:
+        db.close()
+
+    token = _admin(client, "email_sync_admin", "email_sync_admin@example.com")
+    csv_body = f"S.No,MIS Code,Center name as in BO,Region /Zone,Email ID\n1,{code},Khemnichak Patna,Bihar,new.khm@nephroplus.com\n"
+    resp = client.post(
+        "/org/sync/center-emails",
+        files={"file": ("emails.csv", csv_body, "text/csv")},
+        headers=_auth(token),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_rows"] == 1
+    assert body["updated"] == 1
+    assert body["skipped"] == []

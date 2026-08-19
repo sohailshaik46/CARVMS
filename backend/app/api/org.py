@@ -15,6 +15,7 @@ from app.schemas.org import (
     ContactChangeRequestOut,
     DataConflictOut,
     DirectoryReportOut,
+    EmailSyncReportOut,
     OrgDimensionCreate,
     OrgDimensionOut,
     OrgNodeCreate,
@@ -250,6 +251,45 @@ async def sync_center_directory_upload(
         total_rows=report.total_rows,
         centers_created=report.centers_created,
         centers_updated=report.centers_updated,
+        skipped=[SkippedRowOut(row_number=s.row_number, reason=s.reason) for s in report.skipped],
+    )
+
+
+@router.post("/sync/center-emails", response_model=EmailSyncReportOut)
+async def sync_center_emails_upload(
+    file: UploadFile,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_role(roles.ADMIN)),
+):
+    """Upload a center-email directory -- just Center Code + Email ID (plus
+    whatever else the sheet has; matched by column name, not position, so
+    extra/reordered columns like S.No or Region are fine). Updates
+    OrgNode.manager_email for whichever center each row's code already
+    resolves to in the Org Master -- never creates a new center (this
+    sheet has no Zone/Cluster info to place one correctly). Powers the
+    "notify center" email feature's To-address for every center."""
+    raw = await file.read()
+    filename = (file.filename or "").lower()
+    try:
+        if filename.endswith((".xlsx", ".xlsm")):
+            workbook = openpyxl.load_workbook(io.BytesIO(raw), data_only=True)
+            sheet = workbook[workbook.sheetnames[0]]
+            rows = list(sheet.iter_rows(values_only=True))
+        else:
+            text = raw.decode("utf-8-sig")
+            rows = list(csv.reader(io.StringIO(text)))
+    except Exception as exc:  # noqa: BLE001 -- surfaced as a clean 400, not a 500
+        raise HTTPException(status_code=400, detail=f"Could not parse file: {exc}")
+
+    try:
+        report = org_sheet_sync_service.sync_center_emails(db, rows)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return EmailSyncReportOut(
+        total_rows=report.total_rows,
+        updated=report.updated,
+        unchanged=report.unchanged,
         skipped=[SkippedRowOut(row_number=s.row_number, reason=s.reason) for s in report.skipped],
     )
 

@@ -269,6 +269,108 @@ def sync_center_directory(db: Session, rows: list) -> DirectoryReport:
     return report
 
 
+# ---------------------------------------------------------------------------
+# Center email directory -- a Vigilance-specific sheet even simpler than the
+# "All Centers" directory above: just S.No / Center Code / Center Name /
+# Region-Zone / Email ID, nothing else. Doesn't share either sheet's column
+# layout, so gets its own header-alias-based parser (robust to column
+# reordering, unlike the two fixed-position parsers above) rather than being
+# force-fit into sync_center_directory's positional columns.
+#
+# Deliberately conservative like the rest of this module: never creates a
+# center that doesn't already exist in the Org Master (this sheet has no
+# Zone/Cluster/Half-Country info to place one correctly) -- a code not
+# found is reported, not silently skipped or guessed at.
+# ---------------------------------------------------------------------------
+
+_EMAIL_HEADER_ALIASES: dict[str, tuple[str, ...]] = {
+    "center_code": ("miscode", "centercode", "centerid"),
+    "center_name": ("centernameasinbo", "centername", "name"),
+    "email": ("emailid", "email", "centermail", "centeremail"),
+}
+
+
+def _normalize_email_header(text) -> str:
+    return "".join(ch for ch in str(text).strip().lower() if ch.isalnum())
+
+
+def _build_email_column_map(header_row) -> dict[str, int]:
+    normalized = {_normalize_email_header(v): i for i, v in enumerate(header_row) if v is not None}
+    column_map: dict[str, int] = {}
+    for field_name, aliases in _EMAIL_HEADER_ALIASES.items():
+        for alias in aliases:
+            if alias in normalized:
+                column_map[field_name] = normalized[alias]
+                break
+    return column_map
+
+
+@dataclass
+class EmailSyncReport:
+    total_rows: int = 0
+    updated: int = 0
+    unchanged: int = 0
+    skipped: list = field(default_factory=list)
+
+
+def sync_center_emails(db: Session, rows: list) -> EmailSyncReport:
+    """`rows` is a list of already-parsed row tuples/lists (values_only from
+    openpyxl, or csv.reader output) -- the first row is the header, matched
+    by name (see _EMAIL_HEADER_ALIASES) so column order doesn't matter.
+    Updates OrgNode.manager_email for whichever center each row's Center
+    Code already resolves to; never creates a new node."""
+    report = EmailSyncReport()
+    if not rows:
+        return report
+
+    column_map = _build_email_column_map(rows[0])
+    missing = [f for f in ("center_code", "email") if f not in column_map]
+    if missing:
+        raise ValueError(
+            f"Could not find required column(s) {missing} in the header row {list(rows[0])} -- "
+            "expected something like 'MIS Code' and 'Email ID'."
+        )
+
+    def cell(row, field_name):
+        idx = column_map.get(field_name)
+        if idx is None or idx >= len(row) or row[idx] is None:
+            return None
+        return _clean(str(row[idx]))
+
+    for i, row in enumerate(rows[1:], start=1):
+        if row is None or not any(_clean(str(c)) if c is not None else None for c in row):
+            continue  # a genuinely blank row
+
+        center_code = cell(row, "center_code")
+        email = cell(row, "email")
+        center_name = cell(row, "center_name") or center_code
+
+        if not center_code:
+            report.skipped.append(SkippedRow(i, "Missing Center Code", list(row)))
+            continue
+        if not email or "@" not in email:
+            report.skipped.append(SkippedRow(i, f"Missing or invalid email for {center_code}", list(row)))
+            continue
+
+        report.total_rows += 1
+        node = org_service.get_node_by_external_code(db, center_code)
+        if node is None:
+            report.skipped.append(
+                SkippedRow(i, f"{center_code} ({center_name}): no matching center in the Org Master -- upload "
+                               "the Centers Master sheet first, or add this center manually", list(row))
+            )
+            continue
+
+        if node.manager_email == email:
+            report.unchanged += 1
+            continue
+
+        org_service.update_node(db, node=node, manager_email=email)
+        report.updated += 1
+
+    return report
+
+
 def list_active_center_directory(db: Session) -> list[dict]:
     """(code, name) pairs for every active center node -- what the public
     response portal's Center Code/Name dropdowns are populated from."""

@@ -88,6 +88,13 @@ class DirectoryReportOut(BaseModel):
     skipped: list[SkippedRowOut]
 
 
+class EmailSyncReportOut(BaseModel):
+    total_rows: int
+    updated: int
+    unchanged: int
+    skipped: list[SkippedRowOut]
+
+
 class CenterDirectoryEntry(BaseModel):
     code: str
     name: str
