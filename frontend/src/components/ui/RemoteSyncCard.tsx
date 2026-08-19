@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Card, CardBody, CardHeader } from './Card'
 import { Button } from './Button'
 import { Tooltip } from './Tooltip'
 import { useToast } from './ToastProvider'
 import { apiErrorMessage } from '../../lib/api'
+import { getRemoteSyncStatus } from '../../lib/resources/org'
 
 /** A flattened, domain-agnostic shape every remote-sync report (Org
  * Master, DCB, WRC) reduces to for display -- each page's own resource
@@ -50,6 +51,14 @@ export function RemoteSyncCard({
   onPreviewPull,
   onApplyPull,
 }: RemoteSyncCardProps) {
+  // Hides itself entirely on an instance where REMOTE_DATABASE_URL was
+  // never configured (e.g. Render itself) -- Push/Pull could never work
+  // there, so there's no point showing buttons that only ever error.
+  // Renders nothing while this is still loading too, rather than
+  // flashing the card and then yanking it away a moment later.
+  const { data: status } = useQuery({ queryKey: ['remote-sync-status'], queryFn: getRemoteSyncStatus })
+  if (!status?.configured) return null
+
   return (
     <Card>
       <CardHeader

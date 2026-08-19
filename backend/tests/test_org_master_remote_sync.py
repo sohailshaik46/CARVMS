@@ -234,3 +234,34 @@ def test_remote_sync_returns_clear_400_when_pointed_at_its_own_database(client, 
     resp = client.post("/org/sync/remote/push", headers=_auth(admin_token))
     assert resp.status_code == 400
     assert "identical" in resp.json()["detail"].lower()
+
+
+# ---------------------------------------------------------------------------
+# Status endpoint -- lets each Data Sync card decide whether to show
+# itself at all
+# ---------------------------------------------------------------------------
+
+
+def test_remote_sync_status_reports_false_when_not_configured(client, monkeypatch):
+    monkeypatch.setattr("app.services.org_master_remote_sync_service.settings.REMOTE_DATABASE_URL", None)
+    _register(client, "orsync_status_unconfigured", "orsync_status_unconfigured@example.com")
+    token = _login(client, "orsync_status_unconfigured")
+    resp = client.get("/org/sync/remote/status", headers=_auth(token))
+    assert resp.status_code == 200
+    assert resp.json() == {"configured": False}
+
+
+def test_remote_sync_status_reports_true_when_configured(client, monkeypatch):
+    from app.services.org_master_remote_sync_service import settings as sync_settings
+
+    monkeypatch.setattr(sync_settings, "REMOTE_DATABASE_URL", "postgresql://fake:fake@fake-host/fake")
+    _register(client, "orsync_status_configured", "orsync_status_configured@example.com")
+    token = _login(client, "orsync_status_configured")
+    resp = client.get("/org/sync/remote/status", headers=_auth(token))
+    assert resp.status_code == 200
+    assert resp.json() == {"configured": True}
+
+
+def test_remote_sync_status_requires_auth(client):
+    resp = client.get("/org/sync/remote/status")
+    assert resp.status_code == 401

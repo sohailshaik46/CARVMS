@@ -37,6 +37,16 @@ export async function getCentersDirectory(): Promise<CenterDirectoryEntry[]> {
   return data
 }
 
+/** Whether THIS instance can even attempt a remote sync -- shared by all
+ * three Data Sync cards (Org Master, DCB, WRC), since they all gate on
+ * the exact same REMOTE_DATABASE_URL setting. Lets each card hide
+ * itself on an instance (e.g. Render) where sync was never configured,
+ * rather than showing Push/Pull buttons that only ever error. */
+export async function getRemoteSyncStatus(): Promise<{ configured: boolean }> {
+  const { data } = await api.get<{ configured: boolean }>('/org/sync/remote/status')
+  return data
+}
+
 /** Manual Org Master sync against REMOTE_DATABASE_URL -- never automatic.
  * commit=false (the default) previews the diff and writes nothing; call
  * again with commit=true once the preview looks right. Never deletes

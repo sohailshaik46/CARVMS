@@ -24,6 +24,14 @@ class RemoteSyncReportOut(BaseModel):
     committed: bool
 
 
+class RemoteSyncStatusOut(BaseModel):
+    # Whether THIS instance has REMOTE_DATABASE_URL configured at all --
+    # lets the frontend hide the Data Sync card entirely on an instance
+    # (e.g. Render itself) where push/pull could never work, rather than
+    # showing buttons that only ever error when clicked.
+    configured: bool
+
+
 class OrgDimensionCreate(BaseModel):
     key: str = Field(min_length=1, max_length=50, pattern=r"^[a-z0-9_]+$")
     label: str = Field(min_length=1, max_length=100)

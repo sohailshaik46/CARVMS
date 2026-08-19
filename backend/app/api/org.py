@@ -25,6 +25,7 @@ from app.schemas.org import (
     OrgNodeUpdate,
     OrgNodeWithPath,
     RemoteSyncReportOut,
+    RemoteSyncStatusOut,
     SkippedRowOut,
     SyncReportOut,
 )
@@ -334,6 +335,17 @@ async def sync_center_emails_upload(
 # Manual Org Master sync against REMOTE_DATABASE_URL (local <-> Render) --
 # never automatic, see org_master_remote_sync_service's module docstring.
 # ---------------------------------------------------------------------------
+
+
+@router.get("/sync/remote/status", response_model=RemoteSyncStatusOut)
+def get_remote_sync_status(_user: User = Depends(get_current_user)):
+    """Whether THIS instance can even attempt a remote sync at all --
+    lets the Data Sync card hide itself on an instance (e.g. Render
+    itself) where REMOTE_DATABASE_URL was never configured, instead of
+    showing Push/Pull buttons that would only ever error when clicked.
+    Shared by all three Data Sync cards (Org Master, DCB, WRC) since
+    they all gate on this exact same setting."""
+    return RemoteSyncStatusOut(configured=bool(settings.REMOTE_DATABASE_URL))
 
 
 def _remote_sync_report_to_schema(report) -> RemoteSyncReportOut:
