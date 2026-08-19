@@ -255,7 +255,7 @@ export function DelayedCashBillingPage() {
                               </Tooltip>
                               <Tooltip text="Opens every center in this batch with its total bills and calculated penalty.">
                                 <button
-                                  className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300"
+                                  className="text-xs font-medium text-vigilance-600 hover:text-vigilance-500 dark:text-vigilance-400 dark:hover:text-vigilance-300"
                                   onClick={() => {
                                     setDashboardBatchId(null)
                                     setSelectedBatchId(batch.id)
@@ -275,7 +275,7 @@ export function DelayedCashBillingPage() {
                               </Tooltip>
                               <Tooltip text="Downloads this batch's full Data + Penalty workbook as an Excel file, regenerated fresh from its current bills and penalties.">
                                 <button
-                                  className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300 disabled:opacity-50"
+                                  className="text-xs font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 disabled:opacity-50"
                                   disabled={downloadMutation.isPending}
                                   onClick={() => downloadMutation.mutate(batch.id)}
                                 >

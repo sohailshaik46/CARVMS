@@ -320,7 +320,7 @@ export function WeeklyRevenueClosurePage() {
                               </Tooltip>
                               <Tooltip text="Opens the centers in this batch with their zone/cluster, plus each center's all-time repeat-non-compliance count and considered/not-considered history.">
                                 <button
-                                  className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300"
+                                  className="text-xs font-medium text-vigilance-600 hover:text-vigilance-500 dark:text-vigilance-400 dark:hover:text-vigilance-300"
                                   onClick={() => {
                                     setSelectedBatchId(null)
                                     setCentersBatchId(batch.id)
@@ -331,7 +331,7 @@ export function WeeklyRevenueClosurePage() {
                               </Tooltip>
                               <Tooltip text="Generates a response link for every center with an incident in this batch, and shows the full list so you can share or email them.">
                                 <button
-                                  className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-vigilance-400 dark:hover:text-neon-400"
+                                  className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-neon-400 dark:hover:text-neon-300"
                                   disabled={publishMutation.isPending}
                                   onClick={() => publishMutation.mutate(batch.id)}
                                 >
@@ -340,7 +340,7 @@ export function WeeklyRevenueClosurePage() {
                               </Tooltip>
                               <Tooltip text="Downloads this week's full Data + Penalty workbook as an Excel file, regenerated fresh from its current incidents and penalties.">
                                 <button
-                                  className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300 disabled:opacity-50"
+                                  className="text-xs font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 disabled:opacity-50"
                                   disabled={downloadMutation.isPending}
                                   onClick={() => downloadMutation.mutate({ batchId: batch.id, weekLabel: batch.week_label })}
                                 >
