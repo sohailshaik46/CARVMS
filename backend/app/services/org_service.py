@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -240,3 +241,59 @@ def create_node(
     db.commit()
     db.refresh(node)
     return node
+
+
+@dataclass
+class CenterDetail:
+    """Everything about one center in a single flattened shape -- who runs
+    it and who it escalates to at every level above, for "click a center,
+    see everything" lookups. Built by walking find_ancestor_by_dimension_key
+    up from the center node; note each ancestor's OWN manager_name/email/
+    phone IS that level's manager (a cluster node's manager_name is the
+    Cluster Manager's name, not the cluster's -- per the Centers Master
+    sheet's convention, a cluster has no separate label of its own, see
+    org_sheet_sync_service's module docstring)."""
+
+    center_code: str
+    center_name: str
+    is_active: bool
+    center_manager_name: Optional[str]
+    center_manager_npid: Optional[str]
+    center_manager_email: Optional[str]
+    center_manager_phone: Optional[str]
+    cluster_manager_name: Optional[str]
+    cluster_manager_email: Optional[str]
+    cluster_manager_phone: Optional[str]
+    zone_name: Optional[str]
+    zonal_manager_name: Optional[str]
+    zonal_manager_email: Optional[str]
+    zonal_manager_phone: Optional[str]
+    half_country_head: Optional[str]
+
+
+def get_center_detail(db: Session, center_code: str) -> Optional[CenterDetail]:
+    center = get_node_by_external_code(db, center_code)
+    if center is None:
+        return None
+
+    cluster = find_ancestor_by_dimension_key(db, center, "cluster")
+    zone = find_ancestor_by_dimension_key(db, center, "zone")
+    half_country = find_ancestor_by_dimension_key(db, center, "half_country")
+
+    return CenterDetail(
+        center_code=center.external_code or center_code,
+        center_name=center.name,
+        is_active=center.is_active,
+        center_manager_name=center.manager_name,
+        center_manager_npid=center.manager_npid,
+        center_manager_email=center.manager_email,
+        center_manager_phone=center.manager_phone,
+        cluster_manager_name=cluster.manager_name if cluster else None,
+        cluster_manager_email=cluster.manager_email if cluster else None,
+        cluster_manager_phone=cluster.manager_phone if cluster else None,
+        zone_name=zone.name if zone else None,
+        zonal_manager_name=zone.manager_name if zone else None,
+        zonal_manager_email=zone.manager_email if zone else None,
+        zonal_manager_phone=zone.manager_phone if zone else None,
+        half_country_head=(half_country.manager_name or half_country.name) if half_country else None,
+    )

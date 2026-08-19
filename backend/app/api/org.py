@@ -12,6 +12,7 @@ from app.config.settings import settings
 from app.database.database import get_db
 from app.models.user import User
 from app.schemas.org import (
+    CenterDetailOut,
     ContactChangeRequestOut,
     DataConflictOut,
     DirectoryReportOut,
@@ -107,6 +108,23 @@ def get_node(
         manager_npid=node.manager_npid,
         path=org_service.get_node_path(db, node),
     )
+
+
+@router.get("/centers/{center_code}/detail", response_model=CenterDetailOut)
+def get_center_detail(
+    center_code: str,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    """One flattened view of everything about a center -- its own manager
+    (name/NPID/email/phone), its Cluster Manager, its Zonal Manager and
+    zone name, and its Half Country Head, resolved by walking up the Org
+    Master from the center node. 404s if the code isn't in the Org Master
+    at all (see org_sheet_sync_service for how centers get placed there)."""
+    detail = org_service.get_center_detail(db, center_code)
+    if detail is None:
+        raise HTTPException(status_code=404, detail=f"No center with code '{center_code}' in the Org Master")
+    return detail
 
 
 @router.post("/nodes", response_model=OrgNodeOut, status_code=201)

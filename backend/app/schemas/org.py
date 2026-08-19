@@ -95,6 +95,29 @@ class EmailSyncReportOut(BaseModel):
     skipped: list[SkippedRowOut]
 
 
+class CenterDetailOut(BaseModel):
+    """Everything about one center in a single flattened shape -- see
+    org_service.CenterDetail for the full reasoning."""
+
+    center_code: str
+    center_name: str
+    is_active: bool
+    center_manager_name: Optional[str]
+    center_manager_npid: Optional[str]
+    center_manager_email: Optional[str]
+    center_manager_phone: Optional[str]
+    cluster_manager_name: Optional[str]
+    cluster_manager_email: Optional[str]
+    cluster_manager_phone: Optional[str]
+    zone_name: Optional[str]
+    zonal_manager_name: Optional[str]
+    zonal_manager_email: Optional[str]
+    zonal_manager_phone: Optional[str]
+    half_country_head: Optional[str]
+
+    model_config = {"from_attributes": True}
+
+
 class CenterDirectoryEntry(BaseModel):
     code: str
     name: str

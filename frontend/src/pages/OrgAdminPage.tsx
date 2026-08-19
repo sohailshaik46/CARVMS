@@ -7,10 +7,11 @@ import { SelectField, TextField } from '../components/ui/Field'
 import { ErrorBanner, Spinner } from '../components/ui/Feedback'
 import { HeroBanner } from '../components/ui/HeroBanner'
 import { NetworkNodesIllustration } from '../components/ui/Illustrations'
+import { Tooltip } from '../components/ui/Tooltip'
 import { useToast } from '../components/ui/ToastProvider'
 import { apiErrorMessage } from '../lib/api'
-import { createDimension, createNode, listDimensions, listNodes, updateNode } from '../lib/resources/org'
-import type { OrgNode } from '../lib/types'
+import { createDimension, createNode, getCenterDetail, listDimensions, listNodes, updateNode } from '../lib/resources/org'
+import type { CenterDetail, OrgNode } from '../lib/types'
 
 export function OrgAdminPage() {
   const queryClient = useQueryClient()
@@ -64,6 +65,8 @@ export function OrgAdminPage() {
         subtitle="Zones, clusters, and centers -- the structure every audit, penalty, and ranking is scoped against."
       />
       {error && <ErrorBanner message={error} />}
+
+      <CenterLookupCard />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
@@ -145,6 +148,147 @@ export function OrgAdminPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+function CenterLookupCard() {
+  const [input, setInput] = useState('')
+  const [centerCode, setCenterCode] = useState<string | null>(null)
+
+  const { data, isFetching, error, isError } = useQuery({
+    queryKey: ['org-center-detail', centerCode],
+    queryFn: () => getCenterDetail(centerCode as string),
+    enabled: centerCode !== null,
+    retry: false,
+  })
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    const trimmed = input.trim()
+    if (trimmed) setCenterCode(trimmed)
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title="Center Lookup"
+        actions={
+          <Tooltip text="Look up everything about one center by its exact code -- who's the Center Manager (and their NPID/email), which cluster and zone it sits under, and who to escalate to at each level (Cluster Manager, Zonal Manager, Half Country Head).">
+            <span className="text-xs text-slate-400 dark:text-slate-500">What is this?</span>
+          </Tooltip>
+        }
+      />
+      <CardBody className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
+          <div className="w-64">
+            <TextField
+              id="center-lookup-code"
+              label="Center Code"
+              placeholder="e.g. 173-AP-ONG-PPP-C"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+            />
+          </div>
+          <Button type="submit" isLoading={isFetching}>
+            Look up
+          </Button>
+        </form>
+
+        {isError && <ErrorBanner message={apiErrorMessage(error, 'Center not found')} />}
+
+        {data && <CenterDetailGrid detail={data} />}
+      </CardBody>
+    </Card>
+  )
+}
+
+function CenterDetailGrid({ detail }: { detail: CenterDetail }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2 lg:grid-cols-4 dark:border-slate-700">
+      <DetailField
+        label="Center"
+        value={`${detail.center_code} -- ${detail.center_name}`}
+        tooltip="This center's own code and name, exactly as they appear in the Org Master."
+      />
+      <DetailField
+        label="Status"
+        value={detail.is_active ? 'Active' : 'Inactive'}
+        tooltip="Whether this center is currently active in the Org Master -- an inactive center is excluded from remark-automation lookups by default."
+      />
+      <DetailField
+        label="Center Manager"
+        value={detail.center_manager_name}
+        tooltip="The person in charge at this specific center (Center Incharge)."
+      />
+      <DetailField
+        label="Center Manager NPID"
+        value={detail.center_manager_npid}
+        tooltip="The Center Manager's NephroPlus employee ID (NPID)."
+      />
+      <DetailField
+        label="Center Email"
+        value={detail.center_manager_email}
+        tooltip="This center's own email address -- where 'Notify Center' emails in DCB/WRC are sent."
+      />
+      <DetailField
+        label="Center Phone"
+        value={detail.center_manager_phone}
+        tooltip="The Center Manager's phone number, if on file."
+      />
+      <DetailField
+        label="Cluster Manager"
+        value={detail.cluster_manager_name}
+        tooltip="This center's Cluster Manager -- a cluster has no separate name of its own; it's identified only by who manages it."
+      />
+      <DetailField
+        label="Cluster Manager Email"
+        value={detail.cluster_manager_email}
+        tooltip="The Cluster Manager's email -- who this center's escalations go to first."
+      />
+      <DetailField
+        label="Cluster Manager Phone"
+        value={detail.cluster_manager_phone}
+        tooltip="The Cluster Manager's phone number, if on file."
+      />
+      <DetailField
+        label="Zone"
+        value={detail.zone_name}
+        tooltip="The zone this center's cluster sits under."
+      />
+      <DetailField
+        label="Zonal Manager"
+        value={detail.zonal_manager_name}
+        tooltip="Who manages this center's entire zone -- the next level of escalation above the Cluster Manager."
+      />
+      <DetailField
+        label="Zonal Manager Email"
+        value={detail.zonal_manager_email}
+        tooltip="The Zonal Manager's email."
+      />
+      <DetailField
+        label="Zonal Manager Phone"
+        value={detail.zonal_manager_phone}
+        tooltip="The Zonal Manager's phone number, if on file."
+      />
+      <DetailField
+        label="Half Country Head"
+        value={detail.half_country_head}
+        tooltip="The most senior person over this center's zone, if this zone reports to one -- some zones have no Half Country Head and report directly."
+      />
+    </div>
+  )
+}
+
+function DetailField({ label, value, tooltip }: { label: string; value: string | null; tooltip: string }) {
+  return (
+    <Tooltip text={tooltip}>
+      <div>
+        <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{label}</p>
+        <p className="text-sm text-slate-800 dark:text-slate-100">
+          {value ?? <span className="text-slate-400 dark:text-slate-500">—</span>}
+        </p>
+      </div>
+    </Tooltip>
   )
 }
 

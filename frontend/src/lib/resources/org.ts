@@ -1,5 +1,5 @@
 import { api } from '../api'
-import type { OrgDimension, OrgNode, OrgNodeWithPath } from '../types'
+import type { CenterDetail, OrgDimension, OrgNode, OrgNodeWithPath } from '../types'
 
 export async function listDimensions(): Promise<OrgDimension[]> {
   const { data } = await api.get<OrgDimension[]>('/org/dimensions')
@@ -18,6 +18,11 @@ export async function listNodes(params?: { dimension_key?: string; parent_id?: n
 
 export async function getNode(nodeId: number): Promise<OrgNodeWithPath> {
   const { data } = await api.get<OrgNodeWithPath>(`/org/nodes/${nodeId}`)
+  return data
+}
+
+export async function getCenterDetail(centerCode: string): Promise<CenterDetail> {
+  const { data } = await api.get<CenterDetail>(`/org/centers/${encodeURIComponent(centerCode)}/detail`)
   return data
 }
 

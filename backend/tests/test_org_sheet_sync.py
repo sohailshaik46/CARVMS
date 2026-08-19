@@ -486,3 +486,84 @@ def test_admin_can_upload_center_emails_csv_and_get_report(client):
     assert body["total_rows"] == 1
     assert body["updated"] == 1
     assert body["skipped"] == []
+
+
+# ---------- center detail lookup ("open one center, see everything") ----------
+
+
+def test_center_detail_resolves_full_chain_including_half_country_head():
+    db = TestingSessionLocal()
+    try:
+        sync_svc.sync_centers_master(db, _load_fixture(), delimiter="\t")
+        detail = org_service.get_center_detail(db, "1-TS-HYD-BJH-S")
+
+        assert detail is not None
+        assert detail.center_code == "1-TS-HYD-BJH-S"
+        assert detail.center_name == "Banjara Hills, Hyderabad"
+        assert detail.is_active is True
+        assert detail.center_manager_name == "ABRAR"
+        assert detail.center_manager_npid == "NP28447"
+        assert detail.center_manager_email == "np.ap.bh.cm@nephroplus.com"
+
+        assert detail.cluster_manager_name == "Shubham Desai"
+        assert detail.cluster_manager_email == "shubham.desai@nephroplus.com"
+
+        assert detail.zone_name == "South"
+        assert detail.zonal_manager_name == "Juturu Rajesh Kumar Reddy"
+        assert detail.zonal_manager_email == "rajesh.juturu@nephroplus.com"
+
+        assert detail.half_country_head == "Krunal"
+    finally:
+        db.close()
+
+
+def test_center_detail_has_no_half_country_head_when_genuinely_blank_in_source():
+    db = TestingSessionLocal()
+    try:
+        sync_svc.sync_centers_master(db, _load_fixture(), delimiter="\t")
+        detail = org_service.get_center_detail(db, "106-BH-PTN-KHM-C")
+
+        assert detail is not None
+        assert detail.zone_name == "Bihar"
+        assert detail.zonal_manager_name == "Nishant Kumar Singh"
+        assert detail.half_country_head is None  # Bihar has no head in this fixture
+    finally:
+        db.close()
+
+
+def test_center_detail_returns_none_for_unknown_code():
+    db = TestingSessionLocal()
+    try:
+        sync_svc.sync_centers_master(db, _load_fixture(), delimiter="\t")
+        assert org_service.get_center_detail(db, "999-NOPE-C") is None
+    finally:
+        db.close()
+
+
+def test_center_detail_endpoint_requires_auth(client):
+    resp = client.get("/org/centers/1-TS-HYD-BJH-S/detail")
+    assert resp.status_code == 401
+
+
+def test_center_detail_endpoint_returns_flattened_json(client):
+    token = _admin(client, "center_detail_admin", "center_detail_admin@example.com")
+    client.post(
+        "/org/sync/centers-master",
+        files={"file": ("centers.tsv", _load_fixture(), "text/tab-separated-values")},
+        headers=_auth(token),
+    )
+
+    resp = client.get("/org/centers/1-TS-HYD-BJH-S/detail", headers=_auth(token))
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["center_name"] == "Banjara Hills, Hyderabad"
+    assert body["center_manager_npid"] == "NP28447"
+    assert body["zone_name"] == "South"
+    assert body["zonal_manager_name"] == "Juturu Rajesh Kumar Reddy"
+    assert body["half_country_head"] == "Krunal"
+
+
+def test_center_detail_endpoint_404s_for_unknown_code(client):
+    token = _admin(client, "center_detail_admin2", "center_detail_admin2@example.com")
+    resp = client.get("/org/centers/999-NOPE-C/detail", headers=_auth(token))
+    assert resp.status_code == 404

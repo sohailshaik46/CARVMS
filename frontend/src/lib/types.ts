@@ -60,6 +60,29 @@ export interface OrgNodeWithPath extends OrgNode {
   path: OrgNodePath[]
 }
 
+// Everything about one center in a single flattened shape -- powers the
+// "open a center, see everything" lookup. See backend org_service.
+// CenterDetail for the full reasoning (each ancestor's own manager_* is
+// that level's manager -- a cluster's manager_name IS the Cluster
+// Manager's name, per the Centers Master sheet's own convention).
+export interface CenterDetail {
+  center_code: string
+  center_name: string
+  is_active: boolean
+  center_manager_name: string | null
+  center_manager_npid: string | null
+  center_manager_email: string | null
+  center_manager_phone: string | null
+  cluster_manager_name: string | null
+  cluster_manager_email: string | null
+  cluster_manager_phone: string | null
+  zone_name: string | null
+  zonal_manager_name: string | null
+  zonal_manager_email: string | null
+  zonal_manager_phone: string | null
+  half_country_head: string | null
+}
+
 // ---------- Dashboard / Metrics ----------
 // Rewritten 2026-08-14 to compute from Delayed Cash Billing (DCB) + Weekly
 // Revenue Closure (WRC) data -- the Audits/Findings domain this used to
