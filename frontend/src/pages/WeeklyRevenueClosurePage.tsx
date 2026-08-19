@@ -210,6 +210,11 @@ export function WeeklyRevenueClosurePage() {
     onError: (err) => showToast(apiErrorMessage(err, 'Could not publish links'), 'error'),
   })
 
+  const downloadMutation = useMutation({
+    mutationFn: ({ batchId, weekLabel }: { batchId: number; weekLabel: string }) => downloadBatchExport(batchId, weekLabel),
+    onError: (err) => showToast(apiErrorMessage(err, 'Download failed'), 'error'),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (batchId: number) => deleteBatch(batchId),
     onSuccess: () => {
@@ -331,6 +336,15 @@ export function WeeklyRevenueClosurePage() {
                                   onClick={() => publishMutation.mutate(batch.id)}
                                 >
                                   Publish links
+                                </button>
+                              </Tooltip>
+                              <Tooltip text="Downloads this week's full Data + Penalty workbook as an Excel file, regenerated fresh from its current incidents and penalties.">
+                                <button
+                                  className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300 disabled:opacity-50"
+                                  disabled={downloadMutation.isPending}
+                                  onClick={() => downloadMutation.mutate({ batchId: batch.id, weekLabel: batch.week_label })}
+                                >
+                                  Download
                                 </button>
                               </Tooltip>
                               <Tooltip text="Permanently deletes this batch and everything computed from it -- incidents, penalties, cases, submitted responses, and evidence files. Cannot be undone; asks for confirmation first.">

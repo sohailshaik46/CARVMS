@@ -144,6 +144,11 @@ export function DelayedCashBillingPage() {
     onError: (err) => showToast(apiErrorMessage(err, 'Publish failed'), 'error'),
   })
 
+  const downloadMutation = useMutation({
+    mutationFn: (batchId: number) => downloadBatchExport(batchId),
+    onError: (err) => showToast(apiErrorMessage(err, 'Download failed'), 'error'),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (batchId: number) => deleteBatch(batchId),
     onSuccess: () => {
@@ -266,6 +271,15 @@ export function DelayedCashBillingPage() {
                                   onClick={() => publishMutation.mutate(batch.id)}
                                 >
                                   {batch.status === 'published' ? 'Re-publish links' : 'Publish links'}
+                                </button>
+                              </Tooltip>
+                              <Tooltip text="Downloads this batch's full Data + Penalty workbook as an Excel file, regenerated fresh from its current bills and penalties.">
+                                <button
+                                  className="text-xs font-medium text-np-calming-blue hover:text-np-deep-blue dark:text-neon-blue-400 dark:hover:text-neon-blue-300 disabled:opacity-50"
+                                  disabled={downloadMutation.isPending}
+                                  onClick={() => downloadMutation.mutate(batch.id)}
+                                >
+                                  Download
                                 </button>
                               </Tooltip>
                               <Tooltip text="Permanently deletes this batch and everything computed from it -- bills, penalties, responses, and evidence files. Cannot be undone; asks for confirmation first.">
